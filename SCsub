@@ -1,0 +1,8 @@
+# SCsub
+
+Import('env')
+
+env_module = env.Clone()
+
+env_module.add_source_files(env.modules_sources, "*.cpp")
+env_module.add_source_files(env.modules_sources, "Tools/*.cpp")
