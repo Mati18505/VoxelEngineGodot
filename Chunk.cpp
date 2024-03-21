@@ -14,12 +14,14 @@
 #define Array3D(x, y, z, width, height) ((y) * width * height) + ((z) * width) + x
 #define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * world->columnHeight)
 
+#define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
+
 namespace Voxel {
 	Chunk::Chunk(Vector3 chunkWorldPosition, World* worldParent, ChunkColumn* chunkColumnParent, char chunkHeight)
 	{
 		world = worldParent;
 		transform = Transform3D();
-		transform.origin = chunkWorldPosition;
+		transform.origin = ConvertYZ(chunkWorldPosition);
 		chunkColumn = chunkColumnParent;
 		this->chunkHeight = chunkHeight;
 		chunkMesh = Ref<ArrayMesh>(memnew(ArrayMesh));
@@ -88,7 +90,7 @@ namespace Voxel {
 	}
 	
 	void Chunk::AddObject(Vector3 chunkWorldPos) {
-		transform.origin = chunkWorldPos;
+		transform.origin = ConvertYZ(chunkWorldPos);
 		Vector3 scale(world->worldScale, world->worldScale, world->worldScale);
 		transform.scale(scale);
 	

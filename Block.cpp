@@ -6,19 +6,20 @@
 #include "BlockType.h"
 #include "ChunkColumn.h"
 #define chunkSize chunkParent.world->chunkSize
+#define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
 namespace Voxel
 {
 	// Unreal Engine: z=y y=z: triangles, vertices, normals
 	const int Block::sideTriangles[6] = { 3, 1, 0, 3, 2, 1 };
-	const Vector3 Block::vertices[8] = { Vector3(-0.5f, 0.5f,  -0.5f),
-	                                            Vector3(0.5f, 0.5f,  -0.5f),
-	                                            Vector3(0.5f, -0.5f, -0.5f),
-	                                            Vector3(-0.5f, -0.5f, -0.5f),
-	                                            Vector3(-0.5f,  0.5f,  0.5f),
-	                                            Vector3(0.5f,  0.5f,  0.5f),
-	                                            Vector3(0.5f,  -0.5f, 0.5f),
-	                                            Vector3(-0.5f,  -0.5f, 0.5f) };
+	const Vector3 Block::vertices[8] = { Vector3(-0.5f, -0.5f,  -0.5f),
+	                                            Vector3(0.5f, -0.5f,  -0.5f),
+	                                            Vector3(0.5f, -0.5f, 0.5f),
+	                                            Vector3(-0.5f, -0.5f, 0.5f),
+	                                            Vector3(-0.5f,  0.5f,  -0.5f),
+	                                            Vector3(0.5f,  0.5f,  -0.5f),
+	                                            Vector3(0.5f,  0.5f, 0.5f),
+	                                            Vector3(-0.5f,  0.5f, 0.5f) };
 	
 	Block::Block(BlockID typeID)
 	{
@@ -36,52 +37,52 @@ namespace Voxel
 	    switch (side)
 	    {
 	    case FRONT:
-	        meshData.vertices.push_back(posInChunk + vertices[4]);
-	        meshData.vertices.push_back(posInChunk + vertices[5]);
-	        meshData.vertices.push_back(posInChunk + vertices[1]);
-	        meshData.vertices.push_back(posInChunk + vertices[0]);
+				meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[4]);
+				meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[5]);
+				meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[1]);
+				meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[0]);
 	        for (int i = 0; i < 4; i++)
-	            meshData.normals.push_back(Vector3(0.f, 1.f, 0.f));
+	            meshData.normals.push_back(Vector3(0.f, 0.f, -1.f));
 	        break;
 	    case BACK:
-	        meshData.vertices.push_back(posInChunk + vertices[6]);
-	        meshData.vertices.push_back(posInChunk + vertices[7]);
-	        meshData.vertices.push_back(posInChunk + vertices[3]);
-	        meshData.vertices.push_back(posInChunk + vertices[2]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[6]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[7]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[3]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[2]);
 	        for (int i = 0; i < 4; i++)
-	            meshData.normals.push_back(Vector3(0.f, -1.f, 0.f));
+	            meshData.normals.push_back(Vector3(0.f, 0.f, 1.f));
 	        break;
 	    case LEFT:
-	        meshData.vertices.push_back(posInChunk + vertices[7]);
-	        meshData.vertices.push_back(posInChunk + vertices[4]);
-	        meshData.vertices.push_back(posInChunk + vertices[0]);
-	        meshData.vertices.push_back(posInChunk + vertices[3]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[7]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[4]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[0]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[3]);
 	        for (int i = 0; i < 4; i++)
 	            meshData.normals.push_back(Vector3(-1.f, 0.f, 0.f));
 	        break;
 	    case RIGHT:
-	        meshData.vertices.push_back(posInChunk + vertices[5]);
-	        meshData.vertices.push_back(posInChunk + vertices[6]);
-	        meshData.vertices.push_back(posInChunk + vertices[2]);
-	        meshData.vertices.push_back(posInChunk + vertices[1]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[5]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[6]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[2]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[1]);
 	        for (int i = 0; i < 4; i++)
 	            meshData.normals.push_back(Vector3(1.f, 0.f, 0.f));
 	        break;
 	    case TOP:
-	        meshData.vertices.push_back(posInChunk + vertices[7]);
-	        meshData.vertices.push_back(posInChunk + vertices[6]);
-	        meshData.vertices.push_back(posInChunk + vertices[5]);
-	        meshData.vertices.push_back(posInChunk + vertices[4]);
+	        meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[7]);
+	        meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[6]);
+	        meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[5]);
+	        meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[4]);
 	        for (int i = 0; i < 4; i++)
-	            meshData.normals.push_back(Vector3(0.f, 0.f, 1.f));
+	            meshData.normals.push_back(Vector3(0.f, 1.f, 1.f));
 	        break;
 	    case BOTTOM:
-	        meshData.vertices.push_back(posInChunk + vertices[0]);
-	        meshData.vertices.push_back(posInChunk + vertices[1]);
-	        meshData.vertices.push_back(posInChunk + vertices[2]);
-	        meshData.vertices.push_back(posInChunk + vertices[3]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[0]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[1]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[2]);
+			meshData.vertices.push_back(ConvertYZ(posInChunk) + vertices[3]);
 	        for (int i = 0; i < 4; i++)
-	            meshData.normals.push_back(Vector3(0.f, 0.f, -1.f));
+	            meshData.normals.push_back(Vector3(0.f, -1.f, -1.f));
 	        break;
 	    }
 	    meshData.uvs.push_back(Vector2(1.f, 0.f));

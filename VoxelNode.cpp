@@ -3,6 +3,7 @@
 #include <fstream>
 #include "Tools/TextParser.h"
 #include "Tools/ActorManager.h"
+#define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
 void VoxelNode::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_materials"), &VoxelNode::get_materials);
@@ -70,7 +71,7 @@ void VoxelNode::Ready() {
 
 	//FVector playerLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
 	Vector3 playerLocation = get_position();
-	world->Start(texturesJson, biomesJson, playerLocation);
+	world->Start(texturesJson, biomesJson, ConvertYZ(playerLocation));
 }
 
 
@@ -78,7 +79,7 @@ void VoxelNode::Process() {
 	//get_viewport()->get_camera_3d()->get_camera_transform();
 	//Vector3 playerLocation = get_node("/root/player")->get_position();
 	Vector3 playerLocation = get_position();
-	world->Update(playerLocation);
+	world->Update(ConvertYZ(playerLocation));
 
 	actorManagerQueue.Resolve();
 }
