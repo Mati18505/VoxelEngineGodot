@@ -17,7 +17,7 @@ namespace Voxel
 	void MaterialDictionary::GenerateMaterialDictionary(const Dictionary &materials) {
 		for (int i = 0; i < materials.size(); i++) {
 			const Variant &key = materials.get_key_at_index(i);
-			const Variant &value = materials.get_value_at_index(key);
+			const Variant &value = materials.get_value_at_index(i);
 			String materialName = key;
 			Ref<Material> material = value;
 	
