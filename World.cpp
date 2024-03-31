@@ -12,32 +12,17 @@
 namespace Voxel {
 	World::World(VoxelNode* gameMode)
 	{
-		for (int i = 0; i < gameMode->materials.size(); i++)
-		{
-			String materialName = gameMode->materials.get_key_at_index(i);
-			Ref<Material> material = gameMode->materials.get_value_at_index(i);
-			blockMaterials.insert({ std::string(materialName.utf8()), material });
-		}
-	
 		this->currentPlayerPos = Vector2i(0, 0);
 		this->lastPlayerPos = Vector2i(-1, 0);
 		this->gameMode = gameMode;
 		isBuildWorldThreadEnd = false;
 	}
 	
-	void World::Start(Json texturesJson, Json biomesJson, Vector3 playerLocation) {
+	void World::Start(Json biomesJson, Vector3 playerLocation) {
 		print_line("start world\n");
-		print_line("\nTextures: \n");
-		GenerateTextureIndexDictionary();
-	
-		for (auto& it : textureIndexDictionary)
-		{
-			print_line(std::string(it.first + " - " + std::to_string(it.second) + "\n").c_str());
-		}
 			
 		terrainGenerator = std::make_unique<TerrainGenerator>(this);
 	
-		GenerateBlockTypes(texturesJson);
 		GenerateBiomeTypes(biomesJson);
 	
 		Update(playerLocation);
@@ -183,41 +168,16 @@ namespace Voxel {
 		print_line(ss.str().c_str());
 	}
 	
-	/// <summary>
-	/// Dodanie bloków na podstawie jsonFile
-	/// </summary>
-	/// <param name="jsonFile">Objekt Json na podstawie którego wygenerować typy bloków</param>
-	void World::GenerateBlockTypes(Json jsonFile) {
-		
-		for (int i = 0; i < jsonFile["blocks"].size(); i++)
-		{
-			Json blockP = jsonFile["blocks"][i];
-			std::string materialName = blockP.contains("material") ? blockP["material"] : "default";
-			bool isTransparent = blockP["isTransparent"] == "true";
-			bool isTranslucent = blockP.contains("translucent") ? (bool)blockP["translucent"] : isTransparent;
-	
-			BlockType* block = new BlockType(blockP["name"], isTransparent, blockP["isEverySideSame"] == "true", materialName, isTranslucent);
-			if (blockP["isEverySideSame"] == "true") 
-				block->SetBlockSideTextureIndex(GetBlockTextureIndex(blockP["textures"]["side"]));
-			else {
-				block->SetBlockSideTextureIndex(GetBlockTextureIndex(blockP["textures"]["side"]));
-				block->SetBottomTextureIndex(GetBlockTextureIndex(blockP["textures"]["bottom"]));
-				block->SetTopTextureIndex(GetBlockTextureIndex(blockP["textures"]["top"]));
-			}
-			blockTypes.push_back(block);
-		}
-	}
-	
 	void World::GenerateBiomeTypes(Json jsonFile)
 	{
 		for (Json biomeJ : jsonFile["biomes"])
 		{
 			biomes.push_back(std::make_unique<Biome>(biomeJ["name"]));
 			Biome& biome = *biomes.back();
-			biome.atmosphereBlock = GetBlockTypeIDFromName(biomeJ["atmosphere"]);
-			biome.layer1stBlock = GetBlockTypeIDFromName(biomeJ["layer1st"]);
-			biome.layer2ndBlock = GetBlockTypeIDFromName(biomeJ["layer2nd"]);
-			biome.layer3rdBlock = GetBlockTypeIDFromName(biomeJ["layer3rd"]);
+			biome.atmosphereBlock = gameMode->GetBlockTypeIDFromName(biomeJ["atmosphere"]);
+			biome.layer1stBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer1st"]);
+			biome.layer2ndBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer2nd"]);
+			biome.layer3rdBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer3rd"]);
 			biome.majorFloraZoneScale = biomeJ["majorFloraZoneScale"];
 			biome.majorFloraZoneThreshold = biomeJ["majorFloraZoneThreshold"];
 			biome.majorFloraPlacementScale = biomeJ["majorFloraPlacementScale"];
@@ -225,31 +185,6 @@ namespace Voxel {
 			biome.placeMajorFlora = biomeJ["placeMajorFlora"];
 			
 		}
-	}
-	
-	BlockID World::GetBlockTypeIDFromName(std::string typeName)
-	{
-		auto finded = std::find_if(blockTypes.begin(), blockTypes.end(), [&typeName](BlockType* blockType) { return blockType->name == typeName; });
-	
-		if (finded == blockTypes.end())
-			throw std::invalid_argument("BlockType name does not exist!");
-	
-		return finded - blockTypes.begin();
-	}
-	
-	Ref<Material> World::GetBlockTypeMaterial(BlockType *blockType) {
-		return blockMaterials.at(blockType->GetMaterialName());
-	}
-	
-	Ref<Material> World::GetMaterialFromName(std::string name) {
-		return blockMaterials.at(name);
-	}
-	
-	int World::GetBlockTextureIndex(const std::string& blockName) {
-		if (blockName == "" || textureIndexDictionary.count(blockName) == 0)
-			return 0;
-		else
-			return textureIndexDictionary.at(blockName);
 	}
 	
 	ChunkPos World::GenerateChunkColumnID(Vector3 chunkPos) {
@@ -275,7 +210,7 @@ namespace Voxel {
 		auto finded = chunks.find(chunkID); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())){
 			int blockID = finded->second->GetBlockAt(Vector3i(blockInChunkPos)).GetBlockTypeID();
-			return blockTypes[blockID];
+			return gameMode->blockTypes[blockID];
 		}	
 		return nullptr;
 	}
@@ -338,9 +273,6 @@ namespace Voxel {
 	
 		for (auto& it : chunks)
 			delete it.second;
-	
-		for (auto& blockType : blockTypes)
-			delete blockType;
 		print_line("World deleted\n");
 	}
 	
@@ -348,14 +280,5 @@ namespace Voxel {
 		
 		currentPlayerPos.x = floor(PlayerLocation.x / chunkScaledSize);
 		currentPlayerPos.y = floor(PlayerLocation.y / chunkScaledSize);
-	}
-	
-	void World::GenerateTextureIndexDictionary()
-	{
-		for (int textureIndex = 0; textureIndex < gameMode->textureArray->get_layers(); textureIndex++)
-		{
-			Ref<Texture2D> currentTexture = gameMode->textureArray->get_layer_data(textureIndex);
-			textureIndexDictionary[std::string(currentTexture->get_name().utf8())] = textureIndex;
-		}
 	}
 }

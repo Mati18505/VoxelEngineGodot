@@ -11,7 +11,6 @@
 #include <memory>
 #include "vendor/nlohmann/json.hpp"
 #include "VoxelTypes.h"
-#include <scene/resources/material.h>
 
 namespace Voxel
 {
@@ -51,7 +50,6 @@ namespace Voxel {
 	using Json = nlohmann::json;
 	
 	class World {
-		std::map<std::string, Ref<Material>> blockMaterials;
 		Vector2i lastPlayerPos;
 		Vector2i currentPlayerPos;
 		std::thread buildWorldThread;
@@ -75,17 +73,12 @@ namespace Voxel {
 	
 		// ChunkPos, Chunk
 		std::unordered_map<ChunkPos, ChunkColumn*> chunks;
-		// Block name, textureIndex
-		std::map<std::string, int> textureIndexDictionary;
-	
-		std::vector<BlockType*> blockTypes;
 	
 		std::queue<VoxelMod> blocksModifications;
 	
-	
 		World(VoxelNode* gameMode);
 		
-		void Start(Json texturesJson, Json biomesJson, Vector3 playerLocation);
+		void Start(Json biomesJson, Vector3 playerLocation);
 	
 		void Update(Vector3 playerLocation);
 	
@@ -96,9 +89,6 @@ namespace Voxel {
 		Vector3 GetChunkColumnPosByBlockWorldPosition(Vector3 blockWorldPosition);
 		// Zwraca typ bloku w chunku lub nullptr jeśli poza światem.
 		BlockType* GetBlockTypeInWorld(Vector3 blockWorldPosition);
-		BlockID GetBlockTypeIDFromName(std::string typeName);
-		Ref<Material> GetBlockTypeMaterial(BlockType* blockType);
-		Ref<Material> GetMaterialFromName(std::string name);
 	
 		bool BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3* hitPoint, float range = 100, Vector3* lastHitPoint = nullptr);
 		void SetBlock(Vector3 blockPositionInWorld, BlockID blockID);
@@ -106,10 +96,7 @@ namespace Voxel {
 		~World();
 	
 	private:
-		int GetBlockTextureIndex(const std::string& blockName);
-		void GenerateBlockTypes(Json jsonFile);
 		void GenerateBiomeTypes(Json jsonFile);
 		void UpdatePlayerPos(Vector3 PlayerLocation);
-		void GenerateTextureIndexDictionary();
 	};
 }

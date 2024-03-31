@@ -8,6 +8,7 @@
 #include "ChunkColumn.h"
 #include "BlockType.h"
 #include "VoxelNode.h"
+#include "MaterialDictionary.h"
 
 #define chunkSize world->chunkSize
 #define chunkScaledSize world->chunkScaledSize
@@ -33,6 +34,9 @@ namespace Voxel {
 		{
 			const std::string& name = pair.first;
 			MeshData& data = pair.second;
+			if (data.vertexIndex == 0)
+				continue;
+
 			// Konwertowanie danych z kontenerów std do kontenerów godot.
 			Vector<Vector3> vertices;
 			Vector<int> triangles;
@@ -60,8 +64,7 @@ namespace Voxel {
 			surfaceArray[Mesh::ARRAY_NORMAL] = normals;
 			chunkMesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, surfaceArray);
 	
-			auto& nameCapture = name;
-			chunkMesh->surface_set_material(it, world->GetMaterialFromName(nameCapture));
+			chunkMesh->surface_set_material(it, world->gameMode->materialDictionary->GetMaterialFromName(name));
 	
 			it++;
 		}
@@ -77,7 +80,7 @@ namespace Voxel {
 				for (int x = 0; x < chunkSize; x++)
 				{
 					Block& block = chunkColumn->chunkBlocks.At({ x, y, z + this->chunkHeight });
-					auto blockType = world->blockTypes.at(block.GetBlockTypeID());
+					auto blockType = world->gameMode->blockTypes.at(block.GetBlockTypeID());
 					MeshData& blockMeshData = meshData[blockType->GetMaterialName()];
 	
 					block.CreateBlock(*this, Vector3(x, y, z), blockMeshData);
@@ -85,7 +88,6 @@ namespace Voxel {
 			}
 		}
 		CombineBlockSides();
-	
 		ClearMeshData();
 	}
 	
@@ -93,7 +95,7 @@ namespace Voxel {
 		transform.origin = ConvertYZ(chunkWorldPos);
 		Vector3 scale(world->worldScale, world->worldScale, world->worldScale);
 		transform.scale(scale);
-	
+
 		world->gameMode->actorManagerQueue.AddFunction([=]() {
 			ActorManager::Get().CreateActor(chunkActor, chunkMesh, transform);
 		});

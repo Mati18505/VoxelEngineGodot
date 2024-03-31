@@ -1,8 +1,30 @@
 # SCsub
 
-Import('env')
+Import("env")
+Import("env_modules")
 
-env_module = env.Clone()
+import glob
 
-env_module.add_source_files(env.modules_sources, "*.cpp")
-env_module.add_source_files(env.modules_sources, "Tools/*.cpp")
+env_voxel = env_modules.Clone()
+env.Append(CPPPATH=["."])
+sources = [
+    "*.cpp",
+    "Tools/*.cpp"
+]
+
+def process_glob_paths(p_sources):
+        out = []
+        for path in p_sources:
+            if '*' in path:
+                paths = glob.glob(path)
+                out += paths
+            else:
+                out.append(path)
+        return out
+
+sources = process_glob_paths(sources)
+
+voxel_files = sources
+
+for f in voxel_files:
+	env_voxel.add_source_files(env.modules_sources, f)

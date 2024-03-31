@@ -27,8 +27,6 @@ namespace Voxel {
 		Chunk** chunks;
 		ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight);
 	
-		void Render();
-	
 		void SetBlock(Vector3i position, BlockID blockID);
 		void ApplyModifiations();
 		Block& GetBlockAt(Vector3i position);

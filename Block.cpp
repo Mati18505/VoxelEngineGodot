@@ -5,6 +5,7 @@
 #include "World.h"
 #include "BlockType.h"
 #include "ChunkColumn.h"
+#include "VoxelNode.h"
 #define chunkSize chunkParent.world->chunkSize
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
@@ -32,7 +33,7 @@ namespace Voxel
 	}
 	
 	void Block::CreateBlockBlockSide(BlockSide side, Chunk& chunkParent, const Vector3& posInChunk, MeshData& meshData) {
-	    BlockType* myType = chunkParent.world->blockTypes[typeID];
+	    BlockType* myType = chunkParent.world->gameMode->blockTypes[typeID];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
 	    {
@@ -117,13 +118,13 @@ namespace Voxel
 	    }
 	    
 	    BlockID neighbourID = chunkColumn->GetBlockAt(neighbourPosition).typeID;
-	    return  chunkParent.world->blockTypes[neighbourID]->GetIsTranslucent();
+		return chunkParent.world->gameMode->blockTypes[neighbourID]->GetIsTranslucent();
 	   // return true;  
 	}
 	
 	void Block::CreateBlock(Chunk& chunkParent, const Vector3& posInDrawChunk, MeshData& meshData)
 	{
-	    if (chunkParent.world->blockTypes[typeID]->GetIsTransparent())
+		if (chunkParent.world->gameMode->blockTypes[typeID]->GetIsTransparent())
 	        return;
 	
 	    for (int i = 0; i < 6; i++)

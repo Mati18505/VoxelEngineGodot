@@ -3,16 +3,20 @@
 #include <fstream>
 #include "Tools/TextParser.h"
 #include "Tools/ActorManager.h"
+#include "scene/main/viewport.h"
+#include "scene/3d/camera_3d.h"
+#include "BlockType.h"
+
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
 void VoxelNode::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_materials"), &VoxelNode::get_materials);
 	ClassDB::bind_method(D_METHOD("set_materials", "materials"), &VoxelNode::set_materials);
-	ClassDB::add_property("VoxelNode", PropertyInfo(Variant::DICTIONARY, "materials"), "set_materials", "get_materials");
+	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "materials"), "set_materials", "get_materials");
 
-	ClassDB::bind_method(D_METHOD("get_texture_array"), &VoxelNode::get_texture_array);
-	ClassDB::bind_method(D_METHOD("set_texture_array", "textureArray"), &VoxelNode::set_texture_array);
-	ClassDB::add_property("VoxelNode", PropertyInfo(Variant::OBJECT, "textureArray"), "set_texture_array", "get_texture_array");
+	ClassDB::bind_method(D_METHOD("get_textures"), &VoxelNode::get_textures);
+	ClassDB::bind_method(D_METHOD("set_textures", "textures"), &VoxelNode::set_textures);
+	ADD_PROPERTY(PropertyInfo(Variant::DICTIONARY, "textures"), "set_textures", "get_textures");
 }
 
 
@@ -53,6 +57,9 @@ void VoxelNode::Ready() {
 
 	world = new Voxel::World(this);
 
+	textureDictionary = std::make_unique<Voxel::TextureDictionary>(textures);
+	materialDictionary = std::make_unique<Voxel::MaterialDictionary>(materials);
+
 	LoadWorldConfig();
 
 	// Read & parse blocks.json.
@@ -64,24 +71,39 @@ void VoxelNode::Ready() {
 		throw 1;
 	String texturesText = texturesFile->get_as_text();
 	Voxel::Json texturesJson = Voxel::Json::parse(std::string(texturesText.utf8()));
+	GenerateBlockTypes(texturesJson);
+
 
 	Ref<FileAccess> biomesFile = FileAccess::open("res://Assets/biomes.json", FileAccess::READ);
 	String biomesText = biomesFile->get_as_text();
 	Voxel::Json biomesJson = Voxel::Json::parse(std::string(biomesText.utf8()));
 
-	//FVector playerLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
-	Vector3 playerLocation = get_position();
-	world->Start(texturesJson, biomesJson, ConvertYZ(playerLocation));
+	Camera3D* camera = GetCurrentCamera3D();
+	if(camera)
+	{
+		Vector3 playerLocation = camera->get_global_position();
+		world->Start(biomesJson, ConvertYZ(playerLocation));
+	}
 }
 
-
 void VoxelNode::Process() {
-	//get_viewport()->get_camera_3d()->get_camera_transform();
-	//Vector3 playerLocation = get_node("/root/player")->get_position();
-	Vector3 playerLocation = get_position();
-	world->Update(ConvertYZ(playerLocation));
+	Camera3D *camera = GetCurrentCamera3D();
+	if (camera)
+	{
+		Vector3 playerLocation = camera->get_global_position();
+		world->Update(ConvertYZ(playerLocation));
+	}
 
 	actorManagerQueue.Resolve();
+}
+
+Camera3D* VoxelNode::GetCurrentCamera3D() {
+	Camera3D *camera = nullptr;
+	if (Viewport* viewport = get_viewport())
+	{
+		camera = viewport->get_camera_3d();
+	}
+	return camera;
 }
 
 VoxelNode::VoxelNode() {
@@ -97,6 +119,8 @@ VoxelNode::VoxelNode() {
 VoxelNode::~VoxelNode() {
 	actorManagerQueue.Resolve();
 	delete world;
+	for (auto &blockType : blockTypes)
+		delete blockType;
 }
 
 
@@ -122,11 +146,43 @@ Dictionary VoxelNode::get_materials() const {
 }
 
 
-void VoxelNode::set_texture_array(Ref<Texture2DArray> textureArray) {
-	this->textureArray = textureArray;
+void VoxelNode::set_textures(Dictionary textures) {
+	this->textures = textures;
 }
 
 
-Ref<Texture2DArray> VoxelNode::get_texture_array() const {
-	return textureArray;
+Dictionary VoxelNode::get_textures() const {
+	return textures;
+}
+
+void VoxelNode::GenerateBlockTypes(Voxel::Json jsonFile) {
+	using namespace Voxel;
+
+	for (int i = 0; i < jsonFile["blocks"].size(); i++) {
+		Json blockP = jsonFile["blocks"][i];
+		std::string materialName = blockP.contains("material") ? blockP["material"] : "default";
+		bool isTransparent = blockP["isTransparent"] == "true";
+		bool isTranslucent = blockP.contains("translucent") ? (bool)blockP["translucent"] : isTransparent;
+
+		BlockType *block = new BlockType(blockP["name"], isTransparent, blockP["isEverySideSame"] == "true", materialName, isTranslucent);
+		if (blockP["isEverySideSame"] == "true")
+			block->SetBlockSideTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]));
+		else {
+			block->SetBlockSideTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]));
+			block->SetBottomTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["bottom"]));
+			block->SetTopTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["top"]));
+		}
+		blockTypes.push_back(block);
+	}
+}
+
+Voxel::BlockID VoxelNode::GetBlockTypeIDFromName(const std::string& typeName) {
+	using namespace Voxel;
+
+	auto finded = std::find_if(blockTypes.begin(), blockTypes.end(), [&typeName](BlockType *blockType) { return blockType->name == typeName; });
+
+	if (finded == blockTypes.end())
+		throw std::invalid_argument("BlockType name does not exist!");
+
+	return finded - blockTypes.begin();
 }
