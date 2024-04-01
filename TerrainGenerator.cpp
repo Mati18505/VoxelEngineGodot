@@ -1,5 +1,5 @@
 #include "TerrainGenerator.h"
-//#include <modules/noise/fastnoise_lite.h>
+#include <modules/noise/fastnoise_lite.h>
 #include "Tools/Math.h"
 #include "VoxelTypes.h"
 #include "Block.h"
@@ -34,7 +34,7 @@ namespace Voxel {
 	
 	void TerrainGenerator::GenerateStructures(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
 	{
-		/*const int chunkSize = world->chunkSize;
+		const int chunkSize = world->chunkSize;
 		const int columnHeight = world->columnHeight;
 		for (int y = 0; y < chunkSize; y++)
 		{
@@ -91,14 +91,14 @@ namespace Voxel {
 					}
 				}
 			}
-		}*/
+		}
 	}
 	
 	float TerrainGenerator::GenerateHeight(float worldX, float worldY) {
-		/*FastNoiseLite noise;
-		noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-		noise.SetFrequency(frequency);
-		noise.SetSeed(world->seed);
+		FastNoiseLite noise;
+		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
+		noise.set_frequency(frequency);
+		noise.set_seed(world->seed);
 	
 		const size_t octavesAmount = 4;
 		float octaveFrequencies[octavesAmount] = { 0.03f, 0.01f, 0.02f, 0.005f };
@@ -108,35 +108,33 @@ namespace Voxel {
 	
 		float height = 0;
 		for (size_t i = 0; i < octavesAmount; i++) {
-			noise.SetFrequency(octaveFrequencies[i]);
-			height += octaveAmplitudes[i] * noise.GetNoise(worldX, worldY);
+			noise.set_frequency(octaveFrequencies[i]);
+			height += octaveAmplitudes[i] * noise.get_noise_2d(worldX, worldY);
 		}
 		height /= (float)octavesAmount;
 	
 		height = VoxelMath::MapValue(1, maxTerrainHeight, -averageOfOctaveAmplitudes, averageOfOctaveAmplitudes, height);
 	
-		return height;*/
-		return 60;
+		return height;
 	}
 	
 	Biome& TerrainGenerator::GetBiome(float worldX, float worldY)
 	{
-		/*FastNoiseLite noise;
-		noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-		noise.SetFrequency(.005f);
-		noise.SetSeed(world->seed);
+		FastNoiseLite noise;
+		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
+		noise.set_frequency(.005f);
+		noise.set_seed(world->seed);
 	
 		size_t index = 0;
-		if (noise.GetNoise(worldX, worldY) > 0.3f)
+		if (noise.get_noise_2d(worldX, worldY) > 0.3f)
 			index = 1;
 	
-		return *world->biomes[index];*/
-		return *world->biomes[0];
+		return *world->biomes[index];
 	}
 	
 	BlockID TerrainGenerator::GenerateVoxel(Biome& biome, int worldZ, int generatedHeight)
 	{
-		/*BlockID blockID;
+		BlockID blockID;
 		if (worldZ > generatedHeight)
 			blockID = biome.atmosphereBlock;
 		else if (worldZ == generatedHeight)
@@ -145,31 +143,27 @@ namespace Voxel {
 			blockID = biome.layer2ndBlock;
 		else if (worldZ < generatedHeight)
 			blockID = biome.layer3rdBlock;
-		return blockID;*/
-		return 1;
+		return blockID;
 	}
 	
 	bool TerrainGenerator::GenerateTreeProbality(Biome& biome, float worldX, float worldY) {
-		
-	
-		/*FastNoiseLite noise;
-		noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-		noise.SetSeed(world->seed);
+		FastNoiseLite noise;
+		noise.set_noise_type(FastNoiseLite::TYPE_SIMPLEX);
+		noise.set_seed(world->seed);
 	
 		bool forest = false;
 	
-		noise.SetFrequency(biome.majorFloraZoneScale);
-		if (noise.GetNoise(worldX, worldY) > biome.majorFloraZoneThreshold)
+		noise.set_frequency(biome.majorFloraZoneScale);
+		if (noise.get_noise_2d(worldX, worldY) > biome.majorFloraZoneThreshold)
 			forest = true;
 	
 		bool tree = false;
 	
-		noise.SetFrequency(biome.majorFloraPlacementScale);
+		noise.set_frequency(biome.majorFloraPlacementScale);
 		if (forest)
-			if (noise.GetNoise(worldX, worldY) > biome.majorFloraPlacementThreshold)
+			if (noise.get_noise_2d(worldX, worldY) > biome.majorFloraPlacementThreshold)
 				tree = true;
 	
-		return tree;*/
-		return false;
+		return tree;
 	}
 }
