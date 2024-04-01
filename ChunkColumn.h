@@ -6,7 +6,7 @@
 namespace Voxel {
 	class World;
 	class Chunk;
-	class Block;
+	struct Block;
 	
 	class ChunkColumn {
 		Vector3 columnPosInWorld;

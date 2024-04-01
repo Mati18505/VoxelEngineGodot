@@ -33,6 +33,13 @@ namespace Voxel {
 				throw new std::invalid_argument("Position out of range!");
 			return elements[Array3D(index.x, index.y, index.z, size.x, size.z)];
 		}
+
+		const T& At(Vector3i index) const
+		{
+			if(CheckBounds(index))
+				throw new std::invalid_argument("Position out of range!");
+			return elements[Array3D(index.x, index.y, index.z, size.x, size.z)];
+		}
 	
 		T* GetRawData() { return elements; }
 	
@@ -41,8 +48,8 @@ namespace Voxel {
 			delete[] elements;
 		}
 	
-		const Vector3i& GetSize() { return size; }
-		int TotalSize() { return size.x * size.y * size.z; }
+		const Vector3i& GetSize() const { return size; }
+		int TotalSize() const { return size.x * size.y * size.z; }
 	
 		Array3d<T>& operator=(const Array3d<T>& other)
 		{
@@ -69,13 +76,18 @@ namespace Voxel {
 		{
 			return elements[Array3D(index.x, index.y, index.z, size.x, size.z)];
 		}
+
+		const T& operator[](Vector3i index) const
+		{
+			return elements[Array3D(index.x, index.y, index.z, size.x, size.z)];
+		}
 	
 	private:
 		T* elements;
 		Vector3i size;
 	
 		//True if index out of range
-		bool CheckBounds(Vector3i index) {
+		bool CheckBounds(Vector3i index) const {
 			return (index.x >= size.x || index.x < 0 ||
 					index.y >= size.y || index.y < 0 ||
 					index.z >= size.z || index.z < 0);

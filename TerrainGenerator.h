@@ -4,7 +4,7 @@
 
 namespace Voxel {
 	class World;
-	class Block;
+	struct Block;
 	class Biome;
 	
 	class TerrainGenerator {

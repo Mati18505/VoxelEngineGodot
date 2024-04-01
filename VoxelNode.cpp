@@ -6,6 +6,7 @@
 #include "scene/main/viewport.h"
 #include "scene/3d/camera_3d.h"
 #include "BlockType.h"
+#include "VoxelMesher.h"
 
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
@@ -55,6 +56,7 @@ void VoxelNode::Ready() {
 
 	textureDictionary = std::make_unique<Voxel::TextureDictionary>(textures);
 	materialDictionary = std::make_unique<Voxel::MaterialDictionary>(materials);
+	voxelMesher = std::make_unique<Voxel::VoxelMesher>(this);
 
 	LoadWorldConfig();
 

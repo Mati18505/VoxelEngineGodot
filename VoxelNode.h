@@ -11,6 +11,10 @@
 #include "MaterialDictionary.h"
 #include "VoxelTypes.h"
 
+namespace Voxel {
+class VoxelMesher;
+}
+
 class VoxelNode : public Node3D
 {
 	GDCLASS(VoxelNode, Node3D);
@@ -24,6 +28,7 @@ public:
 	
 	Voxel::World *world = nullptr;
 	Voxel::ActorManagerQueue actorManagerQueue;
+	std::unique_ptr<Voxel::VoxelMesher> voxelMesher;
 
 	std::unique_ptr<Voxel::TextureDictionary> textureDictionary;
 	std::unique_ptr<Voxel::MaterialDictionary> materialDictionary;

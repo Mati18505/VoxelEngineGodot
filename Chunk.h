@@ -8,29 +8,18 @@
 #include <scene/resources/mesh.h>
 
 namespace Voxel {
-	class Block;
+	struct Block;
 	class World;
 	class ChunkColumn;
 	
-	struct MeshData {
-		std::vector<Vector3> vertices;
-		std::vector<Vector2> uvs;
-		std::vector<int> textureIndexes;
-		std::vector<int> triangles;
-		std::vector<Vector3> normals;
-		int vertexIndex;
-	};
-	
 	class Chunk {
 		RID chunkActor;
-		Ref<ArrayMesh> chunkMesh;
+		Ref<Mesh> chunkMesh;
 	
 		Transform3D transform;
 		char chunkHeight;
 	public:
 		ChunkColumn* chunkColumn;
-		
-		std::unordered_map<std::string, MeshData> meshData;
 	
 		World* world;
 	
@@ -39,21 +28,17 @@ namespace Voxel {
 		// Aktualizuje mesh.
 		void DrawChunk();
 	
-		// Przygotowywuje do renderowania.
-		void AddObject(Vector3 chunkWorldPos);
-	
-		void CombineBlockSides();
-	
-		Block& GetBlockAt(const Vector3& position);
+		const Block& GetBlockAt(const Vector3& position) const;
 	
 		// Funkcja zwraca sąsiedni chunk lub nullptr jeśli nie istnieje.
+		const Chunk* GetNeighbour(BlockSide side) const;
 		Chunk* GetNeighbour(BlockSide side);
 	
 		void DeleteObject();
 	
 		~Chunk();
-	
+
 	private:
-		void ClearMeshData();
+		Chunk* GetNeighbourImpl(BlockSide side) const;
 	};
 }

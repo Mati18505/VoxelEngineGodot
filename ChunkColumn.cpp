@@ -46,11 +46,6 @@ namespace Voxel {
 	}
 	
 	void ChunkColumn::AddChunksObjects(Vector3 chunkColumnWorldPos) {
-		Vector3 chunkPos = chunkColumnWorldPos;
-		for (int i = 0; i < columnHeight; i++) {
-			chunkPos.z = i * chunkScaledSize;
-			chunks[i]->AddObject(chunkPos);
-		}
 		toDraw = true;
 	}
 	

@@ -209,7 +209,7 @@ namespace Voxel {
 	
 		auto finded = chunks.find(chunkID); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())){
-			int blockID = finded->second->GetBlockAt(Vector3i(blockInChunkPos)).GetBlockTypeID();
+			int blockID = finded->second->GetBlockAt(Vector3i(blockInChunkPos)).typeID;
 			return gameMode->blockTypes[blockID];
 		}	
 		return nullptr;

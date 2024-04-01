@@ -51,7 +51,7 @@ namespace Voxel {
 					continue;
 				//Znajdź blok 1 kratkę nad ziemią
 				int treeRootZ = chunkSize * columnHeight - 1;
-				while (chunkBlocks.At({ x, y, treeRootZ }).GetBlockTypeID() == 0)
+				while (chunkBlocks.At({ x, y, treeRootZ }).typeID == 0)
 				{
 					treeRootZ--;
 					if (treeRootZ < 0)
@@ -62,7 +62,7 @@ namespace Voxel {
 				if (treeRootZ + 5 >= chunkSize * columnHeight) continue;
 	
 				//Jeśli blok pod drzewem nie jest layer1stBlock to drzewo nie powstanie (usuń to jeśli chcesz ciekawe efekty)
-				if (chunkBlocks.At({ x, y, treeRootZ - 1 }).GetBlockTypeID() != biome.layer1stBlock)
+				if (chunkBlocks.At({ x, y, treeRootZ - 1 }).typeID != biome.layer1stBlock)
 					continue;
 	
 				//Wygeneruj pień
