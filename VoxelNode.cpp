@@ -21,14 +21,10 @@ void VoxelNode::_bind_methods() {
 
 
 void VoxelNode::LoadWorldConfig() {
-	/*Voxel::TextParser textP;
+	Voxel::TextParser textP;
 	Ref<FileAccess> configFile = FileAccess::open("res://Assets/config.txt", FileAccess::READ);
 	String configText = configFile->get_as_text();
-	textP.Parse(std::string(configText.utf8()));*/
-	
-	Voxel::TextParser textP;
-	std::string path = "D:/Projekty/Godot/VoxelEngine/VoxelWorld/Assets/config.txt";
-	textP.Parse(path);
+	textP.Parse(std::string(configText.utf8()));
 
 	//World
 	if (!textP.GetInt("renderDistance", world->renderDistance))
