@@ -31,10 +31,8 @@ namespace Voxel {
 	
 	void Chunk::DrawChunk() {
 		chunkMesh = world->gameMode->voxelMesher->CreateMesh(chunkColumn->chunkBlocks, chunkHeight, *this);
-
-		world->gameMode->actorManagerQueue.AddFunction([=]() {
-			ActorManager::Get().CreateActor(chunkActor, chunkMesh, transform);
-		});
+		CreateActorIfEmpty();
+		UpdateMesh();
 	}
 	
 	const Block& Chunk::GetBlockAt(const Vector3& position) const {
@@ -73,11 +71,27 @@ namespace Voxel {
 		return chunkColumn->chunks[neighbourChunkIndex];
 	}
 
+	void Chunk::CreateActorIfEmpty() {
+		if(chunkActor.is_null())
+		{
+			world->gameMode->actorManagerQueue.AddFunction([=]() {
+				ActorManager::Get().CreateActor(chunkActor, transform);
+			});
+		}
+	}
+
+	void Chunk::UpdateMesh() {
+		world->gameMode->actorManagerQueue.AddFunction([=]() {
+			ActorManager::Get().UpdateMesh(chunkActor, chunkMesh);
+		});
+	}
+
 	void Chunk::DeleteObject()
 	{
-		world->gameMode->actorManagerQueue.AddFunction([=]() {
+		world->gameMode->actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
 			ActorManager::Get().DestroyActor(chunkActor);
 		});
+		chunkActor = RID();
 	}
 	
 	Chunk::~Chunk()

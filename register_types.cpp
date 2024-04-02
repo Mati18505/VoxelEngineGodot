@@ -2,6 +2,7 @@
 
 #include "core/object/class_db.h"
 #include "VoxelNode.h"
+#include "VoxelController.h"
 
 void initialize_voxel_module(ModuleInitializationLevel p_level)
 {
@@ -10,6 +11,7 @@ void initialize_voxel_module(ModuleInitializationLevel p_level)
 		return;
 	}
 	ClassDB::register_class<VoxelNode>();
+	ClassDB::register_class<VoxelController>();
 }
 
 void uninitialize_voxel_module(ModuleInitializationLevel p_level)

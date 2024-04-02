@@ -18,7 +18,8 @@ namespace Voxel {
 	
 		class Ref<World3D> world;
 	
-		void CreateActor(RID &out, const Ref<Mesh> mesh, const Transform3D &actorTransform);
+		void CreateActor(RID &out, const Transform3D &actorTransform);
+		void UpdateMesh(RID actor, const Ref<Mesh> mesh);
 		void DestroyActor(RID actor);
 		
 	private:

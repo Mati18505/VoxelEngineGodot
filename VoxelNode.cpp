@@ -107,7 +107,6 @@ Camera3D* VoxelNode::GetCurrentCamera3D() {
 VoxelNode::VoxelNode() {
 #ifdef TOOLS_ENABLED
 	inEditor = Engine::get_singleton()->is_editor_hint();
-	//inEditor = false;
 #endif
 	if(!inEditor)
 		set_process(true);

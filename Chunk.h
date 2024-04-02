@@ -40,5 +40,7 @@ namespace Voxel {
 
 	private:
 		Chunk* GetNeighbourImpl(BlockSide side) const;
+		void CreateActorIfEmpty();
+		void UpdateMesh();
 	};
 }
