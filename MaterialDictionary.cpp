@@ -7,8 +7,8 @@ namespace Voxel
 		GenerateMaterialDictionary(materials);
 	}
 	
-	Ref<Material> MaterialDictionary::GetBlockTypeMaterial(BlockType *blockType) {
-		return materialDictionary.at(blockType->GetMaterialName());
+	Ref<Material> MaterialDictionary::GetBlockTypeMaterial(const BlockType &blockType) {
+		return materialDictionary.at(blockType.materialName);
 	}
 	
 	Ref<Material> MaterialDictionary::GetMaterialFromName(const std::string &name) {

@@ -2,16 +2,11 @@
 #include "BlockType.h"
 
 namespace Voxel {
-	BlockType::BlockType(std::string name, bool isTransparent, bool isEveryBlockSideSame, std::string materialName, bool isTranslucent)
-	{
-		this->name = name;
-		this->isTransparent = isTransparent;
-		this->isEveryBlockSideSame = isEveryBlockSideSame;
-		this->materialName = materialName;
-		this->isTranslucent = isTranslucent;
-	}
+	BlockType::BlockType(std::string name, bool isTransparent, bool isEveryBlockSideSame, std::string materialName, bool isTranslucent, bool isSolid) :
+		name(name), isTransparent(isTransparent), isEveryBlockSideSame(isEveryBlockSideSame), materialName(materialName), isTranslucent(isTranslucent), isSolid(isSolid)
+	{}
 	
-	int BlockType::GetBlockSideTextureIndex(BlockSide side) {
+	int BlockType::GetBlockSideTextureIndex(BlockSide side) const {
 		if (isEveryBlockSideSame)
 			return sideTextureIndex;
 		if (side == BlockSide::TOP)

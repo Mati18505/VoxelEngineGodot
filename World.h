@@ -43,7 +43,7 @@ class VoxelNode;
 
 namespace Voxel {
 	struct Rectangle;
-	class BlockType;
+	struct BlockType;
 	class ChunkColumn;
 	class TerrainGenerator;
 	class Biome;
@@ -88,7 +88,7 @@ namespace Voxel {
 		ChunkPos GenerateChunkColumnID(Vector3 chunkPos);
 		Vector3 GetChunkColumnPosByBlockWorldPosition(Vector3 blockWorldPosition);
 		// Zwraca typ bloku w chunku lub nullptr jeśli poza światem.
-		BlockType* GetBlockTypeInWorld(Vector3 blockWorldPosition);
+		const BlockType *GetBlockTypeInWorld(Vector3 blockWorldPosition);
 	
 		bool BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3* hitPoint, float range = 100, Vector3* lastHitPoint = nullptr);
 		void SetBlock(Vector3 blockPositionInWorld, BlockID blockID);
@@ -98,5 +98,6 @@ namespace Voxel {
 	private:
 		void GenerateBiomeTypes(Json jsonFile);
 		void UpdatePlayerPos(Vector3 PlayerLocation);
+		bool IsBlockSolid(Vector3 pos);
 	};
 }

@@ -10,6 +10,7 @@
 #include "TextureDictionary.h"
 #include "MaterialDictionary.h"
 #include "VoxelTypes.h"
+#include "BlockTypeStorage.h"
 
 namespace Voxel {
 class VoxelMesher;
@@ -32,7 +33,7 @@ public:
 
 	std::unique_ptr<Voxel::TextureDictionary> textureDictionary;
 	std::unique_ptr<Voxel::MaterialDictionary> materialDictionary;
-	std::vector<Voxel::BlockType*> blockTypes;
+	Voxel::BlockTypeStorage blockTypes;
 
 	void _notification(int p_what);
 
@@ -41,9 +42,6 @@ public:
 
 	void set_textures(const Dictionary textures);
 	Dictionary get_textures() const;
-
-
-	Voxel::BlockID GetBlockTypeIDFromName(const std::string &typeName);
 
 protected:
 	static void _bind_methods();

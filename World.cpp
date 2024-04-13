@@ -183,10 +183,10 @@ namespace Voxel {
 		{
 			biomes.push_back(std::make_unique<Biome>(biomeJ["name"]));
 			Biome& biome = *biomes.back();
-			biome.atmosphereBlock = gameMode->GetBlockTypeIDFromName(biomeJ["atmosphere"]);
-			biome.layer1stBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer1st"]);
-			biome.layer2ndBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer2nd"]);
-			biome.layer3rdBlock = gameMode->GetBlockTypeIDFromName(biomeJ["layer3rd"]);
+			biome.atmosphereBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["atmosphere"]);
+			biome.layer1stBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer1st"]);
+			biome.layer2ndBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer2nd"]);
+			biome.layer3rdBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer3rd"]);
 			biome.majorFloraZoneScale = biomeJ["majorFloraZoneScale"];
 			biome.majorFloraZoneThreshold = biomeJ["majorFloraZoneThreshold"];
 			biome.majorFloraPlacementScale = biomeJ["majorFloraPlacementScale"];
@@ -205,7 +205,7 @@ namespace Voxel {
 		return Vector3(floor(blockWorldPosition.x / chunkScaledSize) * chunkScaledSize, floor(blockWorldPosition.y / chunkScaledSize) * chunkScaledSize, 0);
 	}
 	
-	BlockType* World::GetBlockTypeInWorld(Vector3 blockWorldPosition)
+	const BlockType* World::GetBlockTypeInWorld(Vector3 blockWorldPosition)
 	{
 		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockWorldPosition);
@@ -220,7 +220,7 @@ namespace Voxel {
 		auto finded = chunks.find(chunkID); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())){
 			int blockID = finded->second->GetBlockAt(Vector3i(blockInChunkPos)).typeID;
-			return gameMode->blockTypes[blockID];
+			return &gameMode->blockTypes[blockID];
 		}	
 		return nullptr;
 	}
@@ -237,10 +237,9 @@ namespace Voxel {
 	    Vector3 currentPos = startPoint;
 	    float currentDistance = 0;
 	    bool isExceededRange = false;
-	    bool isBlockTypeSolid;
-	
-		BlockType* blockType = GetBlockTypeInWorld(RoundVectorInScale(currentPos, worldScale));
-		isBlockTypeSolid = blockType == nullptr ? false : blockType->GetIsSolid();
+
+
+	    bool isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, worldScale));
 	
 	    while (!isExceededRange && !isBlockTypeSolid)
 	    {
@@ -250,8 +249,7 @@ namespace Voxel {
 	        if (range < currentDistance)
 	            isExceededRange = true;
 	
-			blockType = GetBlockTypeInWorld(RoundVectorInScale(currentPos, worldScale));
-			isBlockTypeSolid = blockType == nullptr ? false : blockType->GetIsSolid();
+			isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, worldScale));
 	    }
 	
 	    *hitPoint = RoundVectorInScale(currentPos, worldScale);
@@ -293,4 +291,12 @@ namespace Voxel {
 		currentPlayerPos.x = floor(PlayerLocation.x / chunkScaledSize);
 		currentPlayerPos.y = floor(PlayerLocation.y / chunkScaledSize);
 	}
+
+	bool World::IsBlockSolid(Vector3 pos) {
+		if (const BlockType *blockType = GetBlockTypeInWorld(pos))
+			return blockType->isSolid;
+
+		return false;
+	}
+
 }

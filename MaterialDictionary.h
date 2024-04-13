@@ -10,7 +10,7 @@ namespace Voxel {
 public:
 		MaterialDictionary(const Dictionary &materials);
 
-		Ref<Material> GetBlockTypeMaterial(BlockType *blockType);
+		Ref<Material> GetBlockTypeMaterial(const BlockType& blockType);
 		Ref<Material> GetMaterialFromName(const std::string& name);
 
 	private:

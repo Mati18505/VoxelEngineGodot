@@ -120,8 +120,6 @@ VoxelNode::VoxelNode() {
 VoxelNode::~VoxelNode() {
 	actorManagerQueue.Resolve();
 	delete world;
-	for (auto &blockType : blockTypes)
-		delete blockType;
 }
 
 
@@ -160,31 +158,23 @@ void VoxelNode::GenerateBlockTypes(Voxel::Json jsonFile) {
 	SM_PROFILE_ZONE;
 	using namespace Voxel;
 
+	std::vector<BlockType> blockTypes;
+
 	for (int i = 0; i < jsonFile["blocks"].size(); i++) {
 		Json blockP = jsonFile["blocks"][i];
 		std::string materialName = blockP.contains("material") ? blockP["material"] : "default";
 		bool isTransparent = blockP["isTransparent"] == "true";
 		bool isTranslucent = blockP.contains("translucent") ? (bool)blockP["translucent"] : isTransparent;
 
-		BlockType *block = new BlockType(blockP["name"], isTransparent, blockP["isEverySideSame"] == "true", materialName, isTranslucent);
+		BlockType &block = blockTypes.emplace_back(blockP["name"], isTransparent, blockP["isEverySideSame"] == "true", materialName, isTranslucent, block.name != "air");
+
 		if (blockP["isEverySideSame"] == "true")
-			block->SetBlockSideTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]));
+			block.sideTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]);
 		else {
-			block->SetBlockSideTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]));
-			block->SetBottomTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["bottom"]));
-			block->SetTopTextureIndex(textureDictionary->GetBlockTextureIndex(blockP["textures"]["top"]));
+			block.sideTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]);
+			block.bottomTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["bottom"]);
+			block.topTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["top"]);
 		}
-		blockTypes.push_back(block);
 	}
-}
-
-Voxel::BlockID VoxelNode::GetBlockTypeIDFromName(const std::string& typeName) {
-	using namespace Voxel;
-
-	auto finded = std::find_if(blockTypes.begin(), blockTypes.end(), [&typeName](BlockType *blockType) { return blockType->name == typeName; });
-
-	if (finded == blockTypes.end())
-		throw std::invalid_argument("BlockType name does not exist!");
-
-	return finded - blockTypes.begin();
+	this->blockTypes = BlockTypeStorage(blockTypes);
 }

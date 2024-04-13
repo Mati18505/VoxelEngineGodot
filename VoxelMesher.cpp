@@ -31,8 +31,8 @@ namespace Voxel {
 				for (int x = 0; x < chunkSize; x++)
 				{
 					const Block& block = voxelData.At({ x, y, z + chunkHeightInColumn });
-					auto blockType = gameMode->blockTypes.at(block.typeID);
-					MeshData& blockMeshData = materialsMeshData[blockType->GetMaterialName()];
+					const auto& blockType = gameMode->blockTypes[block.typeID];
+					MeshData& blockMeshData = materialsMeshData[blockType.materialName];
 	
 					CreateBlock(block.typeID, Vector3(x, y, z), chunkParent, blockMeshData);
 				}
@@ -97,7 +97,7 @@ namespace Voxel {
 	}
 
 	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk, MeshData& meshData) {
-		BlockType *myType = chunkParent.world->gameMode->blockTypes[type];
+		const BlockType& myType = chunkParent.world->gameMode->blockTypes[type];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
 	    {
@@ -147,7 +147,7 @@ namespace Voxel {
 	    meshData.uvs.push_back(Vector2(1.f, 1.f));
 	
 	    for (int i = 0; i < 4; i++)
-	        meshData.textureIndexes.push_back(myType->GetBlockSideTextureIndex(side));
+	        meshData.textureIndexes.push_back(myType.GetBlockSideTextureIndex(side));
 	
 	    for (int i = 0; i < 6; i++)
 	        meshData.triangles.push_back(meshData.vertexIndex + blockSideTriangles[i]);
@@ -172,13 +172,13 @@ namespace Voxel {
 	    }
 	    
 	    const BlockID neighbourID = chunk->GetBlockAt(neighbourPosition).typeID;
-		return chunkParent.world->gameMode->blockTypes[neighbourID]->GetIsTranslucent();
+		return chunkParent.world->gameMode->blockTypes[neighbourID].isTranslucent;
 	   // return true;  
 	}
 	
 	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, const Chunk &chunkParent, MeshData& meshData)
 	{
-		if (gameMode->blockTypes[type]->GetIsTransparent())
+		if (gameMode->blockTypes[type].isTransparent)
 	        return;
 	
 	    for (int i = 0; i < 6; i++)
