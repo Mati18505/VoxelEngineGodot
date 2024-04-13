@@ -42,9 +42,22 @@ namespace Voxel {
 		return CombineMeshes(materialsMeshData);
 	}
 
+	template<typename T>
+	static Vector<T> ConvertToGodotVector(const std::vector<T>& v)
+	{
+		Vector<T> result;
+		result.resize(v.size());
+
+		size_t i = 0;
+		for (const T& e : v)
+			result.set(i++, e);
+
+		return result;
+	}
+
 	Ref<Mesh> VoxelMesher::CombineMeshes(const std::unordered_map<std::string, MeshData>& materialsMeshData) {
-		Ref<ArrayMesh> mesh =  Ref<ArrayMesh>(memnew(ArrayMesh));
 		SM_PROFILE_ZONE;
+		Ref<ArrayMesh> mesh = Ref<ArrayMesh>(memnew(ArrayMesh));
 
 		int it = 0;
 		for (auto &pair : materialsMeshData)
@@ -55,22 +68,16 @@ namespace Voxel {
 				continue;
 
 			// Konwertowanie danych z kontenerów std do kontenerów godot.
-			Vector<Vector3> vertices;
-			Vector<int> triangles;
-			Vector<Vector2> uvs;
+			Vector<Vector3> vertices = ConvertToGodotVector(data.vertices);
+			Vector<int> triangles = ConvertToGodotVector(data.triangles);
+			Vector<Vector2> uvs = ConvertToGodotVector(data.uvs);
+			Vector<Vector3> normals = ConvertToGodotVector(data.normals);
 			Vector<Vector2> uvs2;
-			Vector<Vector3> normals;
-	
-			for (Vector3 i : data.vertices)
-				vertices.push_back(i);
-			for (int i : data.triangles)
-				triangles.push_back(i);
-			for (Vector2 i : data.uvs)
-				uvs.push_back(i);
-			for (Vector3 i : data.normals)
-				normals.push_back(i);
+			uvs2.resize(data.textureIndexes.size());
+
+			size_t i = 0;
 			for (int textureIndex : data.textureIndexes)
-				uvs2.push_back({ (float)textureIndex, 0 });
+				uvs2.set(i++, { (float)textureIndex, 0 });
 	
 			Array surfaceArray;
 			surfaceArray.resize(Mesh::ARRAY_MAX);
