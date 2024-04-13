@@ -7,6 +7,7 @@
 #include "scene/3d/camera_3d.h"
 #include "BlockType.h"
 #include "VoxelMesher.h"
+#include "Tools/Profiler.h"
 
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
@@ -22,6 +23,7 @@ void VoxelNode::_bind_methods() {
 
 
 void VoxelNode::LoadWorldConfig() {
+	SM_PROFILE_ZONE;
 	Voxel::TextParser textP;
 	Ref<FileAccess> configFile = FileAccess::open("res://Assets/config.txt", FileAccess::READ);
 	String configText = configFile->get_as_text();
@@ -42,6 +44,7 @@ void VoxelNode::LoadWorldConfig() {
 
 
 void VoxelNode::Ready() {
+	SM_PROFILE_ZONE;
 	if (inEditor)
 		return;
 	using namespace std::chrono_literals;
@@ -85,6 +88,7 @@ void VoxelNode::Ready() {
 }
 
 void VoxelNode::Process() {
+	SM_PROFILE_ZONE;
 	Camera3D *camera = GetCurrentCamera3D();
 	if (camera)
 	{
@@ -153,6 +157,7 @@ Dictionary VoxelNode::get_textures() const {
 }
 
 void VoxelNode::GenerateBlockTypes(Voxel::Json jsonFile) {
+	SM_PROFILE_ZONE;
 	using namespace Voxel;
 
 	for (int i = 0; i < jsonFile["blocks"].size(); i++) {

@@ -5,10 +5,12 @@
 #include "Block.h"
 #include "World.h"
 #include "Biome.h"
+#include "Tools/Profiler.h"
 
 namespace Voxel {
 	void TerrainGenerator::GenerateTerrain(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
 	{
+		SM_PROFILE_ZONE;
 		const int chunkSize = world->chunkSize;
 		for (int y = 0; y < chunkSize; y++)
 		{
@@ -34,6 +36,7 @@ namespace Voxel {
 	
 	void TerrainGenerator::GenerateStructures(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
 	{
+		SM_PROFILE_ZONE;
 		const int chunkSize = world->chunkSize;
 		const int columnHeight = world->columnHeight;
 		for (int y = 0; y < chunkSize; y++)

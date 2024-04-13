@@ -10,6 +10,7 @@
 #include "BlockType.h"
 #include "VoxelNode.h"
 #include "MaterialDictionary.h"
+#include "Tools/Profiler.h"
 
 #define chunkSize world->chunkSize
 #define chunkScaledSize world->chunkScaledSize
@@ -30,6 +31,7 @@ namespace Voxel {
 	}
 	
 	void Chunk::DrawChunk() {
+		SM_PROFILE_ZONE;
 		chunkMesh = world->gameMode->voxelMesher->CreateMesh(chunkColumn->chunkBlocks, chunkHeight, *this);
 		CreateActorIfEmpty();
 		UpdateMesh();
@@ -72,7 +74,8 @@ namespace Voxel {
 	}
 
 	void Chunk::CreateActorIfEmpty() {
-		if(chunkActor.is_null())
+		SM_PROFILE_ZONE;
+		if (chunkActor.is_null())
 		{
 			world->gameMode->actorManagerQueue.AddFunction([=]() {
 				ActorManager::Get().CreateActor(chunkActor, transform);
@@ -81,6 +84,7 @@ namespace Voxel {
 	}
 
 	void Chunk::UpdateMesh() {
+		SM_PROFILE_ZONE;
 		world->gameMode->actorManagerQueue.AddFunction([=]() {
 			ActorManager::Get().UpdateMesh(chunkActor, chunkMesh);
 		});
@@ -88,6 +92,7 @@ namespace Voxel {
 
 	void Chunk::DeleteObject()
 	{
+		SM_PROFILE_ZONE;
 		world->gameMode->actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
 			ActorManager::Get().DestroyActor(chunkActor);
 		});

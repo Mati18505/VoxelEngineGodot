@@ -3,6 +3,7 @@
 #include "BlockType.h"
 #include "Block.h"
 #include "VoxelNode.h"
+#include "Tools/Profiler.h"
 
 #define chunkSize gameMode->world->chunkSize
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
@@ -20,6 +21,7 @@ namespace Voxel {
 
 	Ref<Mesh> VoxelMesher::CreateMesh(const Array3d<Block>& voxelData, uint8_t chunkHeightInColumn, const Chunk &chunkParent)
 	{
+		SM_PROFILE_ZONE;
 		std::unordered_map<std::string, MeshData> materialsMeshData;
 	
 		for (int z = 0; z < chunkSize; z++)
@@ -42,6 +44,7 @@ namespace Voxel {
 
 	Ref<Mesh> VoxelMesher::CombineMeshes(const std::unordered_map<std::string, MeshData>& materialsMeshData) {
 		Ref<ArrayMesh> mesh =  Ref<ArrayMesh>(memnew(ArrayMesh));
+		SM_PROFILE_ZONE;
 
 		int it = 0;
 		for (auto &pair : materialsMeshData)
@@ -87,7 +90,7 @@ namespace Voxel {
 	}
 
 	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk, MeshData& meshData) {
-	    BlockType* myType = chunkParent.world->gameMode->blockTypes[type];
+		BlockType *myType = chunkParent.world->gameMode->blockTypes[type];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
 	    {
@@ -146,7 +149,7 @@ namespace Voxel {
 	
 	bool VoxelMesher::HasTransparentNeighbour(BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk) 
 	{
-	    Vector3 neighbourPosition = posInChunk + GetVectorFromBlockSide(side);
+		Vector3 neighbourPosition = posInChunk + GetVectorFromBlockSide(side);
 	    const Chunk* chunk = &chunkParent;
 	
 	    if (neighbourPosition.x < 0 || neighbourPosition.x >= chunkSize ||

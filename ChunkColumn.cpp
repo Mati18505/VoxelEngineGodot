@@ -6,6 +6,7 @@
 #include <iostream>
 #include <math.h>
 #include "TerrainGenerator.h"
+#include "Tools/Profiler.h"
 
 #define chunkSize worldParent->chunkSize
 #define chunkScaledSize worldParent->chunkScaledSize
@@ -18,7 +19,7 @@ namespace Voxel {
 	ChunkColumn::ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight) :
 			chunkBlocks(Vector3i(chunkSize, chunkSize, chunkSize * columnHeight)) {
 		chunks = new Chunk * [columnHeight];
-	
+		SM_PROFILE_ZONE;
 		this->columnHeight = columnHeight;
 		this->columnPosInWorld = chunkColumnWorldPos;
 		this->worldParent = worldParent;
@@ -28,6 +29,7 @@ namespace Voxel {
 	}
 	
 	void ChunkColumn::GenerateChunks() {
+		SM_PROFILE_ZONE;
 		for (int chunkZ = 0; chunkZ < columnHeight; chunkZ++) 
 			chunks[chunkZ] = new Chunk(columnPosInWorld + Vector3(0, 0, chunkZ * chunkScaledSize), worldParent, this, chunkZ * chunkSize);
 	
@@ -35,10 +37,12 @@ namespace Voxel {
 	}
 	
 	void ChunkColumn::GenerateStructures() {
+		SM_PROFILE_ZONE;
 		worldParent->terrainGenerator->GenerateStructures(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
 	
 	void ChunkColumn::DrawChunks() {
+		SM_PROFILE_ZONE;
 		for (int i = 0; i < columnHeight; i++)
 			chunks[i]->DrawChunk();
 		this->status = ChunkStatus::DRAWN;
@@ -51,6 +55,7 @@ namespace Voxel {
 	
 	
 	void ChunkColumn::SetBlock(Vector3i position, BlockID blockID) {
+		SM_PROFILE_ZONE;
 		int chunkHeight = floor(position.z / chunkSize);
 	
 		this->chunkBlocks.At({ position.x, position.y, position.z }) = Block(blockID);
@@ -101,6 +106,7 @@ namespace Voxel {
 	}
 	
 	void ChunkColumn::DeleteChunksObjects() {
+		SM_PROFILE_ZONE;
 		toDraw = false;
 		for (int i = 0; i < columnHeight; i++)
 			chunks[i]->DeleteObject();

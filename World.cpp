@@ -8,6 +8,7 @@
 #include "Biome.h"
 #include "TerrainGenerator.h"
 #include "VoxelNode.h"
+#include "Tools/Profiler.h"
 
 namespace Voxel {
 	World::World(VoxelNode* gameMode)
@@ -19,6 +20,7 @@ namespace Voxel {
 	}
 	
 	void World::Start(Json biomesJson, Vector3 playerLocation) {
+		SM_PROFILE_ZONE;
 		print_line("start world\n");
 			
 		terrainGenerator = std::make_unique<TerrainGenerator>(this);
@@ -31,6 +33,7 @@ namespace Voxel {
 	}
 	
 	void World::Update(Vector3 playerLocation) {
+		SM_PROFILE_ZONE;
 		UpdatePlayerPos(playerLocation);
 	
 		if (currentPlayerPos != lastPlayerPos)
@@ -43,7 +46,9 @@ namespace Voxel {
 	}
 	
 	void World::BuildWorld() {
+		SM_PROFILE_ZONE;
 		if (useThreading) {
+			SM_PROFILE_SET_THREAD_NAME("BuildWorld thread");
 			while (!isBuildWorldThreadEnd) {
 				for (auto& pair : chunks)
 				{
@@ -71,94 +76,96 @@ namespace Voxel {
 		
 	
 	void World::GenerateWorld() {
+		SM_PROFILE_ZONE;
 		const int generateDistance = renderDistance + 2;
 		const int generateStructsDistance = renderDistance + 1;
 	
 		int chunksGenerated = 0, chunksToDrawCount = 0, chunksToDelete = 0;
 	
-		// GeneratePass
-		for (int y = -generateDistance + currentPlayerPos.y; y <= generateDistance + currentPlayerPos.y; y++)
 		{
-			for (int x = -generateDistance + currentPlayerPos.x; x <= generateDistance + currentPlayerPos.x; x++)
-			{
-				Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
-				ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
-	
-				auto finded = chunks.find(chunkID);
-				if (finded == chunks.end())
-				{
-					ChunkColumn* chunkColumn = new ChunkColumn(chunkPos, this, columnHeight);
-					chunks.insert({ chunkID, chunkColumn });
-					chunksGenerated++;
-				}
-			}
-		}
-	
-		// ModificationsPass
-		std::vector<ChunkColumn*> chunksToApplyModifiations;
-		std::queue<VoxelMod> overdueBlocksModifications; // Przechowuje modyfikacje, które nie mogły być zastosowane, ponieważ ich chunk nie został jeszcze wygenerowany.
-		while (!blocksModifications.empty())
-		{
-			VoxelMod mod = blocksModifications.front();
-			blocksModifications.pop();
-	
-			Vector3 blockScaledPos = (Vector3)mod.pos * worldScale;
-			Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockScaledPos);
-	
-			auto finded = chunks.find(GenerateChunkColumnID(chunkPos));
-			if (!(finded == chunks.end())) {
-				Vector3i blockPosInChunk = Vector3i(blockScaledPos - chunkPos) / worldScale;
-	
-				VoxelMod chunkMod{ mod.id, blockPosInChunk };
-	
-				finded->second->blocksModifications.push(chunkMod);
-				chunksToApplyModifiations.push_back(finded->second);
-			}
-			else
-				overdueBlocksModifications.push(mod); // TODO: zamiast wpisywać do tej listy, przechowywać metadane w chunkach nie wygenerowanych.
-		}
-		blocksModifications = overdueBlocksModifications;
-	
-		for (ChunkColumn* chunk : chunksToApplyModifiations)
-		{
-			chunk->ApplyModifiations();
-		}
-	
-		// RenderPass
-		std::vector<ChunkPos> chunksInRenderDistance;
-	
-		for (int y = -renderDistance + currentPlayerPos.y; y <= renderDistance + currentPlayerPos.y; y++)
-		{
-			for (int x = -renderDistance + currentPlayerPos.x; x <= renderDistance + currentPlayerPos.x; x++)
-			{
-				Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
-				ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
-	
-				auto finded = chunks.find(chunkID);
-				if (!(finded == chunks.end())) {
-					chunksInRenderDistance.push_back(chunkID);
-	
-					if (finded->second->status == ChunkColumn::ChunkStatus::GENERATED && finded->second->toDraw == false)
-					{
-						finded->second->AddChunksObjects(chunkPos);
-						chunksToDrawCount++;
+			SM_PROFILE_ZONE_NAMED("Generate Pass");
+
+			for (int y = -generateDistance + currentPlayerPos.y; y <= generateDistance + currentPlayerPos.y; y++) {
+				for (int x = -generateDistance + currentPlayerPos.x; x <= generateDistance + currentPlayerPos.x; x++) {
+					Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
+					ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
+
+					auto finded = chunks.find(chunkID);
+					if (finded == chunks.end()) {
+						ChunkColumn *chunkColumn = new ChunkColumn(chunkPos, this, columnHeight);
+						chunks.insert({ chunkID, chunkColumn });
+						chunksGenerated++;
 					}
 				}
 			}
 		}
 	
-		// DeletePass
-		for (auto& pair : chunks) {
-			ChunkPos chunkPos = pair.first;
-			ChunkColumn *chunk = pair.second;
+		{
+			SM_PROFILE_ZONE_NAMED("Modifications Pass");
+
+			std::vector<ChunkColumn *> chunksToApplyModifiations;
+			std::queue<VoxelMod> overdueBlocksModifications; // Przechowuje modyfikacje, które nie mogły być zastosowane, ponieważ ich chunk nie został jeszcze wygenerowany.
+			while (!blocksModifications.empty()) {
+				VoxelMod mod = blocksModifications.front();
+				blocksModifications.pop();
+
+				Vector3 blockScaledPos = (Vector3)mod.pos * worldScale;
+				Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockScaledPos);
+
+				auto finded = chunks.find(GenerateChunkColumnID(chunkPos));
+				if (!(finded == chunks.end())) {
+					Vector3i blockPosInChunk = Vector3i(blockScaledPos - chunkPos) / worldScale;
+
+					VoxelMod chunkMod{ mod.id, blockPosInChunk };
+
+					finded->second->blocksModifications.push(chunkMod);
+					chunksToApplyModifiations.push_back(finded->second);
+				} else
+					overdueBlocksModifications.push(mod); // TODO: zamiast wpisywać do tej listy, przechowywać metadane w chunkach nie wygenerowanych.
+			}
+			blocksModifications = overdueBlocksModifications;
+
+			for (ChunkColumn *chunk : chunksToApplyModifiations) {
+				chunk->ApplyModifiations();
+			}
+		}
+		
+		std::vector<ChunkPos> chunksInRenderDistance;
 	
-			if (chunk->status == ChunkColumn::ChunkStatus::DRAWN || chunk->toDraw == true)
-			{
-				auto finded = std::find(chunksInRenderDistance.begin(), chunksInRenderDistance.end(), chunkPos);
-				if (finded == chunksInRenderDistance.end())
-				{
-					chunk->DeleteChunksObjects();
-					chunksToDelete++;
+		{
+			SM_PROFILE_ZONE_NAMED("Render Pass");
+
+			for (int y = -renderDistance + currentPlayerPos.y; y <= renderDistance + currentPlayerPos.y; y++) {
+				for (int x = -renderDistance + currentPlayerPos.x; x <= renderDistance + currentPlayerPos.x; x++) {
+					Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
+					ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
+
+					auto finded = chunks.find(chunkID);
+					if (!(finded == chunks.end())) {
+						chunksInRenderDistance.push_back(chunkID);
+
+						if (finded->second->status == ChunkColumn::ChunkStatus::GENERATED && finded->second->toDraw == false) {
+							finded->second->AddChunksObjects(chunkPos);
+							chunksToDrawCount++;
+						}
+					}
+				}
+			}
+		}
+		
+	
+		{
+			SM_PROFILE_ZONE_NAMED("Delete Pass");
+			for (auto &pair : chunks) {
+				ChunkPos chunkPos = pair.first;
+				ChunkColumn *chunk = pair.second;
+
+				if (chunk->status == ChunkColumn::ChunkStatus::DRAWN || chunk->toDraw == true) {
+					auto finded = std::find(chunksInRenderDistance.begin(), chunksInRenderDistance.end(), chunkPos);
+					if (finded == chunksInRenderDistance.end()) {
+						chunk->DeleteChunksObjects();
+						chunksToDelete++;
+					}
 				}
 			}
 		}
@@ -166,10 +173,12 @@ namespace Voxel {
 		std::stringstream ss;
 		ss << "chunks generated: " << chunksGenerated << ", chunks to draw: " << chunksToDrawCount << ", chunks to delete: " << chunksToDelete;
 		print_line(ss.str().c_str());
+		SM_PROFILE_LOG(ss.str().c_str(), ss.str().size());
 	}
 	
 	void World::GenerateBiomeTypes(Json jsonFile)
 	{
+		SM_PROFILE_ZONE;
 		for (Json biomeJ : jsonFile["biomes"])
 		{
 			biomes.push_back(std::make_unique<Biome>(biomeJ["name"]));
@@ -198,6 +207,7 @@ namespace Voxel {
 	
 	BlockType* World::GetBlockTypeInWorld(Vector3 blockWorldPosition)
 	{
+		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockWorldPosition);
 		Vector3 blockInChunkPos = blockWorldPosition - chunkPos;
 		blockInChunkPos /= worldScale;
@@ -221,6 +231,7 @@ namespace Voxel {
 	
 	bool World::BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3* hitPoint, float range, Vector3* lastHitPoint)
 	{
+		SM_PROFILE_ZONE;
 		range *= worldScale;
 	
 	    Vector3 currentPos = startPoint;
@@ -255,6 +266,7 @@ namespace Voxel {
 	
 	
 	void World::SetBlock(Vector3 blockPositionInWorld, BlockID blockID) {
+		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockPositionInWorld);
 		auto finded = chunks.find(GenerateChunkColumnID(chunkPos)); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())) {

@@ -1,8 +1,10 @@
 #include "ActorManagerQueue.h"
 #include <mutex>
+#include "Profiler.h"
 
 namespace Voxel {
 	void ActorManagerQueue::Resolve() {
+		SM_PROFILE_ZONE;
 		funcsQueueLock.lock();
 		while (!funcsQueue.empty())
 		{
