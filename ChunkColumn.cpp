@@ -8,12 +8,12 @@
 #include "TerrainGenerator.h"
 #include "Tools/Profiler.h"
 
-#define chunkSize worldParent->chunkSize
-#define chunkScaledSize worldParent->chunkScaledSize
-#define worldScale worldParent->worldScale
+#define chunkSize worldParent->config.chunkSize
+#define chunkScaledSize worldParent->config.chunkScaledSize
+#define worldScale worldParent->config.worldScale
 
 #define Array3D(x, y, z, width, height) ((y) * width * height) + ((z) * width) + (x)
-#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * worldParent->columnHeight)
+#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * worldParent->config.columnHeight)
 
 namespace Voxel {
 	ChunkColumn::ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight) :

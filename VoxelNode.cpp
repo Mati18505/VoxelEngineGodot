@@ -7,6 +7,7 @@
 #include "scene/3d/camera_3d.h"
 #include "BlockType.h"
 #include "VoxelMesher.h"
+#include "Tools/ActorManager.h"
 #include "Tools/Profiler.h"
 
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
@@ -22,24 +23,25 @@ void VoxelNode::_bind_methods() {
 }
 
 
-void VoxelNode::LoadWorldConfig() {
+Voxel::GameMode::Config VoxelNode::LoadWorldConfig() const {
 	SM_PROFILE_ZONE;
 	Voxel::TextParser textP;
-	Ref<FileAccess> configFile = FileAccess::open("res://Assets/config.txt", FileAccess::READ);
-	String configText = configFile->get_as_text();
-	textP.Parse(std::string(configText.utf8()));
+	textP.Parse(ReadFile("res://Assets/config.txt").value_or(""));
 
-	//World
-	if (!textP.GetInt("renderDistance", world->renderDistance))
+	Voxel::GameMode::Config config;
+
+	if (!textP.GetInt("renderDistance",config.renderDistance))
 		print_line("config not contains renderDistance\n");
-	if (!textP.GetInt("columnHeight", world->columnHeight))
+	if (!textP.GetInt("columnHeight", config.columnHeight))
 		print_line("config not contains columnHeight\n");
-	if (!textP.GetInt("seed", world->seed))
+	if (!textP.GetInt("seed", config.seed))
 		print_line("config not contains seed\n");
-	if (!textP.GetBool("useThreading", world->useThreading))
+	if (!textP.GetBool("useThreading", config.useThreading))
 		print_line("config not contains useThreading\n");
-	if (!textP.GetFloat("blockRayCastIncrement", world->blockRayCastIncrement))
+	if (!textP.GetFloat("blockRayCastIncrement", config.blockRayCastIncrement))
 		print_line("config not contains blockRayCastIncrement\n");
+
+	return config;
 }
 
 
@@ -53,59 +55,45 @@ void VoxelNode::Ready() {
 
 	Voxel::ActorManager::Get().world = get_world_3d();
 
-	actorManagerQueue.Clear();
+	std::string biomesText = ReadFile("res://Assets/biomes.json").value_or("");
+	nlohmann::json biomesJson = nlohmann::json::parse(biomesText);
+	nlohmann::json blocksJson = nlohmann::json::parse(ReadFile("res://Assets/blocks.json").value_or(""));
 
-	world = new Voxel::World(this);
-
-	textureDictionary = std::make_unique<Voxel::TextureDictionary>(textures);
-	materialDictionary = std::make_unique<Voxel::MaterialDictionary>(materials);
-	voxelMesher = std::make_unique<Voxel::VoxelMesher>(this);
-
-	LoadWorldConfig();
-
-	// Read & parse blocks.json.
-	Error error;
-	String path = "res://Assets/blocks.json";
-	path.simplify_path();
-	Ref<FileAccess> texturesFile = FileAccess::open(path, FileAccess::READ, &error);
-	if (error)
-		throw 1;
-	String texturesText = texturesFile->get_as_text();
-	Voxel::Json texturesJson = Voxel::Json::parse(std::string(texturesText.utf8()));
-	GenerateBlockTypes(texturesJson);
-
-
-	Ref<FileAccess> biomesFile = FileAccess::open("res://Assets/biomes.json", FileAccess::READ);
-	String biomesText = biomesFile->get_as_text();
-	Voxel::Json biomesJson = Voxel::Json::parse(std::string(biomesText.utf8()));
-
-	Camera3D* camera = GetCurrentCamera3D();
-	if(camera)
-	{
-		Vector3 playerLocation = camera->get_global_position();
-		world->Start(biomesJson, ConvertYZ(playerLocation));
-	}
+	gameMode = std::make_unique<Voxel::GameMode>(*this, std::move(LoadWorldConfig()), GetPlayerPos(), materials, textures, biomesJson, blocksJson);
 }
 
 void VoxelNode::Process() {
 	SM_PROFILE_ZONE;
-	Camera3D *camera = GetCurrentCamera3D();
-	if (camera)
-	{
-		Vector3 playerLocation = camera->get_global_position();
-		world->Update(ConvertYZ(playerLocation));
-	}
-
-	actorManagerQueue.Resolve();
+	gameMode->Update(GetPlayerPos());
 }
 
-Camera3D* VoxelNode::GetCurrentCamera3D() {
+Camera3D *VoxelNode::GetCurrentCamera3D() const {
 	Camera3D *camera = nullptr;
 	if (Viewport* viewport = get_viewport())
 	{
 		camera = viewport->get_camera_3d();
 	}
 	return camera;
+}
+
+std::optional<std::string> VoxelNode::ReadFile(std::string_view file) const {
+	SM_PROFILE_ZONE;
+	String path = file.data();
+	path.simplify_path();
+	Error error;
+	Ref<FileAccess> texturesFile = FileAccess::open(path, FileAccess::READ, &error);
+	if (error)
+		return {};
+	return { std::string(texturesFile->get_as_text().utf8()) };
+}
+
+Vector3 VoxelNode::GetPlayerPos() const {
+	Camera3D *camera = GetCurrentCamera3D();
+	Vector3 playerPos = {};
+
+	if (camera)
+		playerPos = camera->get_global_position();
+	return ConvertYZ(playerPos);
 }
 
 VoxelNode::VoxelNode() {
@@ -115,13 +103,6 @@ VoxelNode::VoxelNode() {
 	if(!inEditor)
 		set_process(true);
 }
-
-
-VoxelNode::~VoxelNode() {
-	actorManagerQueue.Resolve();
-	delete world;
-}
-
 
 void VoxelNode::_notification(int p_what) {
 	switch(p_what)
@@ -152,29 +133,4 @@ void VoxelNode::set_textures(Dictionary textures) {
 
 Dictionary VoxelNode::get_textures() const {
 	return textures;
-}
-
-void VoxelNode::GenerateBlockTypes(Voxel::Json jsonFile) {
-	SM_PROFILE_ZONE;
-	using namespace Voxel;
-
-	std::vector<BlockType> blockTypes;
-
-	for (int i = 0; i < jsonFile["blocks"].size(); i++) {
-		Json blockP = jsonFile["blocks"][i];
-		std::string materialName = blockP.contains("material") ? blockP["material"] : "default";
-		bool isTransparent = blockP["isTransparent"] == "true";
-		bool isTranslucent = blockP.contains("translucent") ? (bool)blockP["translucent"] : isTransparent;
-
-		BlockType &block = blockTypes.emplace_back(blockP["name"], isTransparent, blockP["isEverySideSame"] == "true", materialName, isTranslucent, block.name != "air");
-
-		if (blockP["isEverySideSame"] == "true")
-			block.sideTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]);
-		else {
-			block.sideTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["side"]);
-			block.bottomTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["bottom"]);
-			block.topTextureIndex = textureDictionary->GetBlockTextureIndex(blockP["textures"]["top"]);
-		}
-	}
-	this->blockTypes = BlockTypeStorage(blockTypes);
 }

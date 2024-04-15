@@ -11,7 +11,7 @@ namespace Voxel {
 	void TerrainGenerator::GenerateTerrain(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
 	{
 		SM_PROFILE_ZONE;
-		const int chunkSize = world->chunkSize;
+		const int chunkSize = world->config.chunkSize;
 		for (int y = 0; y < chunkSize; y++)
 		{
 			for (int x = 0; x < chunkSize; x++)
@@ -22,7 +22,7 @@ namespace Voxel {
 				Biome& biome = GetBiome(worldX, worldY);
 				float generatedHeight = GenerateHeight(worldX, worldY);
 	
-				for (int z = 0; z < world->columnHeight * chunkSize; z++) 
+				for (int z = 0; z < world->config.columnHeight * chunkSize; z++) 
 				{
 					int worldZ = z;
 					BlockID blockID = GenerateVoxel(biome, worldZ, generatedHeight);
@@ -37,8 +37,8 @@ namespace Voxel {
 	void TerrainGenerator::GenerateStructures(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
 	{
 		SM_PROFILE_ZONE;
-		const int chunkSize = world->chunkSize;
-		const int columnHeight = world->columnHeight;
+		const int chunkSize = world->config.chunkSize;
+		const int columnHeight = world->config.columnHeight;
 		for (int y = 0; y < chunkSize; y++)
 		{
 			for (int x = 0; x < chunkSize; x++)
@@ -101,7 +101,7 @@ namespace Voxel {
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
 		noise.set_frequency(frequency);
-		noise.set_seed(world->seed);
+		noise.set_seed(world->config.seed);
 	
 		const size_t octavesAmount = 4;
 		float octaveFrequencies[octavesAmount] = { 0.03f, 0.01f, 0.02f, 0.005f };
@@ -126,7 +126,7 @@ namespace Voxel {
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
 		noise.set_frequency(.005f);
-		noise.set_seed(world->seed);
+		noise.set_seed(world->config.seed);
 	
 		size_t index = 0;
 		if (noise.get_noise_2d(worldX, worldY) > 0.3f)
@@ -152,7 +152,7 @@ namespace Voxel {
 	bool TerrainGenerator::GenerateTreeProbality(Biome& biome, float worldX, float worldY) {
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_SIMPLEX);
-		noise.set_seed(world->seed);
+		noise.set_seed(world->config.seed);
 	
 		bool forest = false;
 	

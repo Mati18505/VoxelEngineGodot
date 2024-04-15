@@ -7,7 +7,7 @@ class VoxelController : public Node3D {
 
 public:
 	VoxelController();
-	VoxelNode *gameMode;
+	VoxelNode *voxelNode;
 
 	void _notification(int p_what);
 

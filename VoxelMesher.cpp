@@ -5,7 +5,7 @@
 #include "VoxelNode.h"
 #include "Tools/Profiler.h"
 
-#define chunkSize gameMode->world->chunkSize
+#define chunkSize gameMode.config.chunkSize
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
 namespace Voxel {
@@ -31,7 +31,7 @@ namespace Voxel {
 				for (int x = 0; x < chunkSize; x++)
 				{
 					const Block& block = voxelData.At({ x, y, z + chunkHeightInColumn });
-					const auto& blockType = gameMode->blockTypes[block.typeID];
+					const auto& blockType = gameMode.blockTypes[block.typeID];
 					MeshData& blockMeshData = materialsMeshData[blockType.materialName];
 	
 					CreateBlock(block.typeID, Vector3(x, y, z), chunkParent, blockMeshData);
@@ -88,7 +88,7 @@ namespace Voxel {
 			surfaceArray[Mesh::ARRAY_NORMAL] = normals;
 			mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, surfaceArray);
 	
-			mesh->surface_set_material(it, gameMode->materialDictionary->GetMaterialFromName(name));
+			mesh->surface_set_material(it, gameMode.materialDictionary.GetMaterialFromName(name));
 	
 			it++;
 		}
@@ -97,7 +97,7 @@ namespace Voxel {
 	}
 
 	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk, MeshData& meshData) {
-		const BlockType& myType = chunkParent.world->gameMode->blockTypes[type];
+		const BlockType& myType = gameMode.blockTypes[type];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
 	    {
@@ -172,13 +172,13 @@ namespace Voxel {
 	    }
 	    
 	    const BlockID neighbourID = chunk->GetBlockAt(neighbourPosition).typeID;
-		return chunkParent.world->gameMode->blockTypes[neighbourID].isTranslucent;
+		return gameMode.blockTypes[neighbourID].isTranslucent;
 	   // return true;  
 	}
 	
 	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, const Chunk &chunkParent, MeshData& meshData)
 	{
-		if (gameMode->blockTypes[type].isTransparent)
+		if (gameMode.blockTypes[type].isTransparent)
 	        return;
 	
 	    for (int i = 0; i < 6; i++)

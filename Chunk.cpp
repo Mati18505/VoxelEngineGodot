@@ -12,9 +12,9 @@
 #include "MaterialDictionary.h"
 #include "Tools/Profiler.h"
 
-#define chunkSize world->chunkSize
-#define chunkScaledSize world->chunkScaledSize
-#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * world->columnHeight)
+#define chunkSize world->config.chunkSize
+#define chunkScaledSize world->config.chunkScaledSize
+#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * world->config.columnHeight)
 
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
@@ -24,7 +24,7 @@ namespace Voxel {
 		world = worldParent;
 		transform = Transform3D();
 		transform.origin = ConvertYZ(chunkWorldPosition);
-		Vector3 scale(world->worldScale, world->worldScale, world->worldScale);
+		Vector3 scale(world->config.worldScale, world->config.worldScale, world->config.worldScale);
 		transform.scale(scale);
 		chunkColumn = chunkColumnParent;
 		this->chunkHeight = chunkHeight;
@@ -32,7 +32,7 @@ namespace Voxel {
 	
 	void Chunk::DrawChunk() {
 		SM_PROFILE_ZONE;
-		chunkMesh = world->gameMode->voxelMesher->CreateMesh(chunkColumn->chunkBlocks, chunkHeight, *this);
+		chunkMesh = world->gameMode.voxelMesher->CreateMesh(chunkColumn->chunkBlocks, chunkHeight, *this);
 		CreateActorIfEmpty();
 		UpdateMesh();
 	}
@@ -67,7 +67,7 @@ namespace Voxel {
 			return neighbourColumn->chunks[chunkHeightIndex];
 		}
 	
-		if (neighbourChunkIndex < 0 || neighbourChunkIndex >= world->columnHeight)
+		if (neighbourChunkIndex < 0 || neighbourChunkIndex >= world->config.columnHeight)
 			return nullptr;
 	
 		return chunkColumn->chunks[neighbourChunkIndex];
@@ -77,7 +77,7 @@ namespace Voxel {
 		SM_PROFILE_ZONE;
 		if (chunkActor.is_null())
 		{
-			world->gameMode->actorManagerQueue.AddFunction([=]() {
+			world->gameMode.actorManagerQueue.AddFunction([=]() {
 				ActorManager::Get().CreateActor(chunkActor, transform);
 			});
 		}
@@ -85,7 +85,7 @@ namespace Voxel {
 
 	void Chunk::UpdateMesh() {
 		SM_PROFILE_ZONE;
-		world->gameMode->actorManagerQueue.AddFunction([=]() {
+		world->gameMode.actorManagerQueue.AddFunction([=]() {
 			ActorManager::Get().UpdateMesh(chunkActor, chunkMesh);
 		});
 	}
@@ -93,7 +93,7 @@ namespace Voxel {
 	void Chunk::DeleteObject()
 	{
 		SM_PROFILE_ZONE;
-		world->gameMode->actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
+		world->gameMode.actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
 			ActorManager::Get().DestroyActor(chunkActor);
 		});
 		chunkActor = RID();

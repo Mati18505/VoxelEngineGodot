@@ -7,28 +7,21 @@
 #include "ChunkColumn.h"
 #include "Biome.h"
 #include "TerrainGenerator.h"
-#include "VoxelNode.h"
 #include "Tools/Profiler.h"
 
 namespace Voxel {
-	World::World(VoxelNode* gameMode)
-	{
-		this->currentPlayerPos = Vector2i(0, 0);
-		this->lastPlayerPos = Vector2i(-1, 0);
-		this->gameMode = gameMode;
-		isBuildWorldThreadEnd = false;
-	}
+	World::World(GameMode &gameMode, std::vector<std::unique_ptr<Biome>> biomes) :
+		biomes(std::move(biomes)), gameMode(gameMode), config(gameMode.config)
+	{}
 	
-	void World::Start(Json biomesJson, Vector3 playerLocation) {
+	void World::Start(Vector3 playerLocation) {
 		SM_PROFILE_ZONE;
 		print_line("start world\n");
 			
 		terrainGenerator = std::make_unique<TerrainGenerator>(this);
 	
-		GenerateBiomeTypes(biomesJson);
-	
 		Update(playerLocation);
-		if(useThreading)
+		if(config.useThreading)
 			buildWorldThread = std::thread(&World::BuildWorld, this);
 	}
 	
@@ -40,14 +33,14 @@ namespace Voxel {
 		{
 			lastPlayerPos = currentPlayerPos;
 			GenerateWorld();
-			if(!useThreading)
+			if (!config.useThreading)
 				BuildWorld();
 		}
 	}
 	
 	void World::BuildWorld() {
 		SM_PROFILE_ZONE;
-		if (useThreading) {
+		if (config.useThreading) {
 			SM_PROFILE_SET_THREAD_NAME("BuildWorld thread");
 			while (!isBuildWorldThreadEnd) {
 				for (auto& pair : chunks)
@@ -77,8 +70,9 @@ namespace Voxel {
 	
 	void World::GenerateWorld() {
 		SM_PROFILE_ZONE;
-		const int generateDistance = renderDistance + 2;
-		const int generateStructsDistance = renderDistance + 1;
+
+		const int generateDistance = config.renderDistance + 2;
+		const int generateStructsDistance = config.renderDistance + 1;
 	
 		int chunksGenerated = 0, chunksToDrawCount = 0, chunksToDelete = 0;
 	
@@ -87,12 +81,12 @@ namespace Voxel {
 
 			for (int y = -generateDistance + currentPlayerPos.y; y <= generateDistance + currentPlayerPos.y; y++) {
 				for (int x = -generateDistance + currentPlayerPos.x; x <= generateDistance + currentPlayerPos.x; x++) {
-					Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
+					Vector3 chunkPos = Vector3(x * config.chunkScaledSize, y * config.chunkScaledSize, 0);
 					ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
 
 					auto finded = chunks.find(chunkID);
 					if (finded == chunks.end()) {
-						ChunkColumn *chunkColumn = new ChunkColumn(chunkPos, this, columnHeight);
+						ChunkColumn *chunkColumn = new ChunkColumn(chunkPos, this, config.columnHeight);
 						chunks.insert({ chunkID, chunkColumn });
 						chunksGenerated++;
 					}
@@ -109,12 +103,12 @@ namespace Voxel {
 				VoxelMod mod = blocksModifications.front();
 				blocksModifications.pop();
 
-				Vector3 blockScaledPos = (Vector3)mod.pos * worldScale;
+				Vector3 blockScaledPos = (Vector3)mod.pos * config.worldScale;
 				Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockScaledPos);
 
 				auto finded = chunks.find(GenerateChunkColumnID(chunkPos));
 				if (!(finded == chunks.end())) {
-					Vector3i blockPosInChunk = Vector3i(blockScaledPos - chunkPos) / worldScale;
+					Vector3i blockPosInChunk = Vector3i(blockScaledPos - chunkPos) / config.worldScale;
 
 					VoxelMod chunkMod{ mod.id, blockPosInChunk };
 
@@ -135,9 +129,9 @@ namespace Voxel {
 		{
 			SM_PROFILE_ZONE_NAMED("Render Pass");
 
-			for (int y = -renderDistance + currentPlayerPos.y; y <= renderDistance + currentPlayerPos.y; y++) {
-				for (int x = -renderDistance + currentPlayerPos.x; x <= renderDistance + currentPlayerPos.x; x++) {
-					Vector3 chunkPos = Vector3(x * chunkScaledSize, y * chunkScaledSize, 0);
+			for (int y = -config.renderDistance + currentPlayerPos.y; y <= config.renderDistance + currentPlayerPos.y; y++) {
+				for (int x = -config.renderDistance + currentPlayerPos.x; x <= config.renderDistance + currentPlayerPos.x; x++) {
+					Vector3 chunkPos = Vector3(x * config.chunkScaledSize, y * config.chunkScaledSize, 0);
 					ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
 
 					auto finded = chunks.find(chunkID);
@@ -176,33 +170,13 @@ namespace Voxel {
 		SM_PROFILE_LOG(ss.str().c_str(), ss.str().size());
 	}
 	
-	void World::GenerateBiomeTypes(Json jsonFile)
-	{
-		SM_PROFILE_ZONE;
-		for (Json biomeJ : jsonFile["biomes"])
-		{
-			biomes.push_back(std::make_unique<Biome>(biomeJ["name"]));
-			Biome& biome = *biomes.back();
-			biome.atmosphereBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["atmosphere"]);
-			biome.layer1stBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer1st"]);
-			biome.layer2ndBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer2nd"]);
-			biome.layer3rdBlock = gameMode->blockTypes.GetBlockTypeIDFromName(biomeJ["layer3rd"]);
-			biome.majorFloraZoneScale = biomeJ["majorFloraZoneScale"];
-			biome.majorFloraZoneThreshold = biomeJ["majorFloraZoneThreshold"];
-			biome.majorFloraPlacementScale = biomeJ["majorFloraPlacementScale"];
-			biome.majorFloraPlacementThreshold = biomeJ["majorFloraPlacementThreshold"];
-			biome.placeMajorFlora = biomeJ["placeMajorFlora"];
-			
-		}
-	}
-	
 	ChunkPos World::GenerateChunkColumnID(Vector3 chunkPos) {
 		return ChunkPos(int(std::floor(chunkPos.x)), int(std::floor(chunkPos.y)));
 	}
 	
 	Vector3 World::GetChunkColumnPosByBlockWorldPosition(Vector3 blockWorldPosition)
 	{
-		return Vector3(floor(blockWorldPosition.x / chunkScaledSize) * chunkScaledSize, floor(blockWorldPosition.y / chunkScaledSize) * chunkScaledSize, 0);
+		return Vector3(floor(blockWorldPosition.x / config.chunkScaledSize) * config.chunkScaledSize, floor(blockWorldPosition.y / config.chunkScaledSize) * config.chunkScaledSize, 0);
 	}
 	
 	const BlockType* World::GetBlockTypeInWorld(Vector3 blockWorldPosition)
@@ -210,9 +184,9 @@ namespace Voxel {
 		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockWorldPosition);
 		Vector3 blockInChunkPos = blockWorldPosition - chunkPos;
-		blockInChunkPos /= worldScale;
+		blockInChunkPos /= config.worldScale;
 	
-		if (blockInChunkPos.z >= columnHeight * chunkSize || blockInChunkPos.z < 0)
+		if (blockInChunkPos.z >= config.columnHeight * config.chunkSize || blockInChunkPos.z < 0)
 			return nullptr;
 	
 		ChunkPos chunkID = GenerateChunkColumnID(chunkPos);
@@ -220,7 +194,7 @@ namespace Voxel {
 		auto finded = chunks.find(chunkID); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())){
 			int blockID = finded->second->GetBlockAt(Vector3i(blockInChunkPos)).typeID;
-			return &gameMode->blockTypes[blockID];
+			return &gameMode.blockTypes[blockID];
 		}	
 		return nullptr;
 	}
@@ -232,30 +206,30 @@ namespace Voxel {
 	bool World::BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3* hitPoint, float range, Vector3* lastHitPoint)
 	{
 		SM_PROFILE_ZONE;
-		range *= worldScale;
+		range *= config.worldScale;
 	
 	    Vector3 currentPos = startPoint;
 	    float currentDistance = 0;
 	    bool isExceededRange = false;
 
 
-	    bool isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, worldScale));
+	    bool isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, config.worldScale));
 	
 	    while (!isExceededRange && !isBlockTypeSolid)
 	    {
-	        currentPos += direction * blockRayCastIncrement;
-	        currentDistance += blockRayCastIncrement;
+			currentPos += direction * config.blockRayCastIncrement;
+			currentDistance += config.blockRayCastIncrement;
 	
 	        if (range < currentDistance)
 	            isExceededRange = true;
 	
-			isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, worldScale));
+			isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, config.worldScale));
 	    }
 	
-	    *hitPoint = RoundVectorInScale(currentPos, worldScale);
+	    *hitPoint = RoundVectorInScale(currentPos, config.worldScale);
 	
 		if (lastHitPoint != nullptr)
-			*lastHitPoint = RoundVectorInScale(currentPos - direction * blockRayCastIncrement, worldScale);
+			*lastHitPoint = RoundVectorInScale(currentPos - direction * config.blockRayCastIncrement, config.worldScale);
 	
 	    if (!isExceededRange)
 	        return true;
@@ -269,14 +243,14 @@ namespace Voxel {
 		auto finded = chunks.find(GenerateChunkColumnID(chunkPos)); // Szukanie chunka w map chunks.
 		if (!(finded == chunks.end())) {
 			Vector3i blockPosInChunk = Vector3i(blockPositionInWorld - chunkPos);
-			blockPosInChunk /= worldScale;
+			blockPosInChunk /= config.worldScale;
 			finded->second->SetBlock(blockPosInChunk, blockID);
 		}
 	}
 	
 	World::~World()
 	{
-		if (useThreading) {
+		if (config.useThreading) {
 			isBuildWorldThreadEnd = true;
 			buildWorldThread.join();
 		}
@@ -288,8 +262,8 @@ namespace Voxel {
 	
 	void World::UpdatePlayerPos(Vector3 PlayerLocation) {
 		
-		currentPlayerPos.x = floor(PlayerLocation.x / chunkScaledSize);
-		currentPlayerPos.y = floor(PlayerLocation.y / chunkScaledSize);
+		currentPlayerPos.x = floor(PlayerLocation.x / config.chunkScaledSize);
+		currentPlayerPos.y = floor(PlayerLocation.y / config.chunkScaledSize);
 	}
 
 	bool World::IsBlockSolid(Vector3 pos) {

@@ -7,7 +7,7 @@ namespace Voxel {
 		GenerateTextureIndexDictionary(textures);
 	}
 
-	int TextureDictionary::GetBlockTextureIndex(const std::string &blockName) {
+	int TextureDictionary::GetBlockTextureIndex(const std::string &blockName) const {
 		if (blockName == "" || textureIndexDictionary.count(blockName) == 0)
 			return 0;
 		else

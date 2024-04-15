@@ -7,7 +7,7 @@ namespace Voxel {
 	class TextureDictionary {
 	public:
 		TextureDictionary(const Dictionary &textures);
-		int GetBlockTextureIndex(const std::string &blockName);
+		int GetBlockTextureIndex(const std::string &blockName) const;
 
 	private:
 		// Block name, textureIndex

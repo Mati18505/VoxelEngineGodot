@@ -2,14 +2,15 @@
 #include <scene/resources/mesh.h>
 #include "Tools/Array3d.h"
 #include "Chunk.h"
+#include "GameMode.h"
 
 class VoxelNode;
 
 namespace Voxel {
 	class VoxelMesher {
 	public:
-		VoxelMesher(VoxelNode* node)
-			: gameMode(node)
+		VoxelMesher(GameMode &gameMode) :
+			gameMode(gameMode)
 		{}
 		Ref<Mesh> CreateMesh(const Array3d<Block>& voxelData, uint8_t chunkHeightInColumn, const Chunk &chunkParent);
 
@@ -32,6 +33,6 @@ namespace Voxel {
 		void CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk &chunkParent, const Vector3 &posInDrawChunka, MeshData& meshData);
 		bool HasTransparentNeighbour(BlockSide side, const Chunk &chunkParent, const Vector3 &posInDrawChunk);
 
-		VoxelNode *gameMode;
+		GameMode &gameMode;
 	};
 }

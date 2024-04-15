@@ -1,5 +1,6 @@
 #include "VoxelController.h"
 #include "VoxelNode.h"
+#include "World.h"
 #include "scene/main/viewport.h"
 #include "scene/3d/camera_3d.h"
 
@@ -33,7 +34,7 @@ void VoxelController::_bind_methods() {
 
 void VoxelController::Ready() {
 	if(!inEditor)
-		gameMode = dynamic_cast<VoxelNode *>(get_node(NodePath("/root/Main/VoxelNode")));
+		voxelNode = dynamic_cast<VoxelNode *>(get_node(NodePath("/root/Main/VoxelNode")));
 }
 
 void VoxelController::Process() {
@@ -44,9 +45,9 @@ void VoxelController::DestroyBlock() {
 	Vector3 direction = -camera->get_global_transform().basis.get_column(2);
 	Vector3 startPoint = camera->get_global_transform().origin;
 	Vector3 blockPos;
-	if (gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos))
+	if (voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos))
 	{
-		gameMode->world->SetBlock(blockPos, 0);
+		voxelNode->gameMode->world->SetBlock(blockPos, 0);
 	}
 }
 
@@ -57,9 +58,9 @@ void VoxelController::PlaceBlock()
 	Vector3 startPoint = camera->get_global_transform().origin;
 	Vector3 blockPos;
 	Vector3 blockPlacePos;
-	if (gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos, 100.f, &blockPlacePos))
+	if (voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos, 100.f, &blockPlacePos))
 	{
-		gameMode->world->SetBlock(blockPlacePos, 2);
+		voxelNode->gameMode->world->SetBlock(blockPlacePos, 2);
 	}
 }
 
