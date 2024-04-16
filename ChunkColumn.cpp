@@ -18,7 +18,7 @@
 namespace Voxel {
 	ChunkColumn::ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight) :
 			chunkBlocks(Vector3i(chunkSize, chunkSize, chunkSize * columnHeight)) {
-		chunks = new Chunk * [columnHeight];
+		chunks.reserve(columnHeight);
 		SM_PROFILE_ZONE;
 		this->columnHeight = columnHeight;
 		this->columnPosInWorld = chunkColumnWorldPos;
@@ -31,7 +31,7 @@ namespace Voxel {
 	void ChunkColumn::GenerateChunks() {
 		SM_PROFILE_ZONE;
 		for (int chunkZ = 0; chunkZ < columnHeight; chunkZ++) 
-			chunks[chunkZ] = new Chunk(columnPosInWorld + Vector3(0, 0, chunkZ * chunkScaledSize), worldParent, this, chunkZ * chunkSize);
+			chunks.push_back(std::make_unique<Chunk>(columnPosInWorld + Vector3(0, 0, chunkZ * chunkScaledSize), worldParent, this, chunkZ * chunkSize));
 	
 		worldParent->terrainGenerator->GenerateTerrain(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
@@ -62,7 +62,7 @@ namespace Voxel {
 	
 		int posZInChunk = position.z % chunkSize;
 	
-		Chunk* currentChunk = chunks[chunkHeight];
+		Chunk* currentChunk = chunks[chunkHeight].get();
 		
 		std::vector<Chunk*> chunksToRedraw;
 		
@@ -113,7 +113,7 @@ namespace Voxel {
 		this->status = ChunkStatus::GENERATED;
 	}
 	
-	ChunkColumn* ChunkColumn::GetNeighbour(BlockSide side)
+	std::weak_ptr<ChunkColumn> ChunkColumn::GetNeighbour(BlockSide side)
 	{
 		Vector3i neighbourDirection;
 		int neighbourIndex;
@@ -141,22 +141,15 @@ namespace Voxel {
 		}
 	
 		// Jeśli chunka nie ma w tablicy neighbours to go szukamy w świecie.
-		if (neighbours[neighbourIndex] == nullptr)
+		if (neighbours[neighbourIndex].expired())
 		{
 			ChunkPos neighbourPos = worldParent->GenerateChunkColumnID({ columnPosInWorld.x + chunkScaledSize * neighbourDirection.x , columnPosInWorld.y + chunkScaledSize * neighbourDirection.y, 0 });
 			auto finded = worldParent->chunks.find(neighbourPos);
-			if (!(finded == worldParent->chunks.end()))
+			if (finded != worldParent->chunks.end())
 			{
 				neighbours[neighbourIndex] = finded->second;
 			}
 		}
 		return neighbours[neighbourIndex];
-	}
-	
-	ChunkColumn::~ChunkColumn()
-	{
-		for (int i = 0; i < columnHeight; i++)
-			delete chunks[i];
-		delete[] chunks;
 	}
 }

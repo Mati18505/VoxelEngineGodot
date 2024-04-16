@@ -34,7 +34,7 @@ namespace Voxel {
 
 		std::unique_ptr<World> world;
 		ActorManagerQueue actorManagerQueue;
-		std::unique_ptr<VoxelMesher> voxelMesher;
+		std::unique_ptr<const VoxelMesher> voxelMesher;
 		const TextureDictionary textureDictionary;
 		const MaterialDictionary materialDictionary;
 		const BlockTypeStorage blockTypes;

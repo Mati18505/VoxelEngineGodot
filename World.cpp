@@ -46,7 +46,7 @@ namespace Voxel {
 				for (auto& pair : chunks)
 				{
 					ChunkPos chunkPos = pair.first;
-					ChunkColumn *chunk = pair.second;
+					auto chunk = pair.second;
 	
 					if (chunk->toDraw == true)
 						chunk->DrawChunks();
@@ -59,7 +59,7 @@ namespace Voxel {
 			for (auto& pair : chunks)
 			{
 				ChunkPos chunkPos = pair.first;
-				ChunkColumn *chunk = pair.second;
+				auto chunk = pair.second;
 	
 				if(chunk->toDraw == true)
 					chunk->DrawChunks();
@@ -86,8 +86,8 @@ namespace Voxel {
 
 					auto finded = chunks.find(chunkID);
 					if (finded == chunks.end()) {
-						ChunkColumn *chunkColumn = new ChunkColumn(chunkPos, this, config.columnHeight);
-						chunks.insert({ chunkID, chunkColumn });
+						auto chunkColumn = std::make_shared<ChunkColumn>(chunkPos, this, config.columnHeight);
+						chunks.emplace(chunkID, std::move(chunkColumn));
 						chunksGenerated++;
 					}
 				}
@@ -97,7 +97,7 @@ namespace Voxel {
 		{
 			SM_PROFILE_ZONE_NAMED("Modifications Pass");
 
-			std::vector<ChunkColumn *> chunksToApplyModifiations;
+			std::vector<std::shared_ptr<ChunkColumn>> chunksToApplyModifiations;
 			std::queue<VoxelMod> overdueBlocksModifications; // Przechowuje modyfikacje, które nie mogły być zastosowane, ponieważ ich chunk nie został jeszcze wygenerowany.
 			while (!blocksModifications.empty()) {
 				VoxelMod mod = blocksModifications.front();
@@ -119,7 +119,7 @@ namespace Voxel {
 			}
 			blocksModifications = overdueBlocksModifications;
 
-			for (ChunkColumn *chunk : chunksToApplyModifiations) {
+			for (auto& chunk : chunksToApplyModifiations) {
 				chunk->ApplyModifiations();
 			}
 		}
@@ -152,7 +152,7 @@ namespace Voxel {
 			SM_PROFILE_ZONE_NAMED("Delete Pass");
 			for (auto &pair : chunks) {
 				ChunkPos chunkPos = pair.first;
-				ChunkColumn *chunk = pair.second;
+				auto& chunk = pair.second;
 
 				if (chunk->status == ChunkColumn::ChunkStatus::DRAWN || chunk->toDraw == true) {
 					auto finded = std::find(chunksInRenderDistance.begin(), chunksInRenderDistance.end(), chunkPos);
@@ -254,9 +254,6 @@ namespace Voxel {
 			isBuildWorldThreadEnd = true;
 			buildWorldThread.join();
 		}
-	
-		for (auto& it : chunks)
-			delete it.second;
 		print_line("World deleted\n");
 	}
 	

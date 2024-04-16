@@ -1,5 +1,4 @@
 #include "VoxelMesher.h"
-#include "Chunk.h"
 #include "BlockType.h"
 #include "Block.h"
 #include "VoxelNode.h"
@@ -19,7 +18,7 @@ namespace Voxel {
 	                                            Vector3(0.5f,  0.5f, 0.5f),
 	                                            Vector3(-0.5f,  0.5f, 0.5f) };
 
-	Ref<Mesh> VoxelMesher::CreateMesh(const Array3d<Block>& voxelData, uint8_t chunkHeightInColumn, const Chunk &chunkParent)
+	Ref<Mesh> VoxelMesher::CreateMesh(const Array3d<Block> &voxelData, uint8_t chunkHeightInColumn, const Chunk &chunkParent) const
 	{
 		SM_PROFILE_ZONE;
 		std::unordered_map<std::string, MeshData> materialsMeshData;
@@ -55,7 +54,7 @@ namespace Voxel {
 		return result;
 	}
 
-	Ref<Mesh> VoxelMesher::CombineMeshes(const std::unordered_map<std::string, MeshData>& materialsMeshData) {
+	Ref<Mesh> VoxelMesher::CombineMeshes(const std::unordered_map<std::string, MeshData> &materialsMeshData) const {
 		SM_PROFILE_ZONE;
 		Ref<ArrayMesh> mesh = Ref<ArrayMesh>(memnew(ArrayMesh));
 
@@ -96,7 +95,7 @@ namespace Voxel {
 		return mesh;
 	}
 
-	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk, MeshData& meshData) {
+	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk &chunkParent, const Vector3 &posInChunk, MeshData &meshData) const {
 		const BlockType& myType = gameMode.blockTypes[type];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
@@ -154,7 +153,7 @@ namespace Voxel {
 	    meshData.vertexIndex += 4;
 	}
 	
-	bool VoxelMesher::HasTransparentNeighbour(BlockSide side, const Chunk& chunkParent, const Vector3& posInChunk) 
+	bool VoxelMesher::HasTransparentNeighbour(BlockSide side, const Chunk &chunkParent, const Vector3 &posInChunk) const
 	{
 		Vector3 neighbourPosition = posInChunk + GetVectorFromBlockSide(side);
 	    const Chunk* chunk = &chunkParent;
@@ -176,7 +175,7 @@ namespace Voxel {
 	   // return true;  
 	}
 	
-	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, const Chunk &chunkParent, MeshData& meshData)
+	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, const Chunk &chunkParent, MeshData &meshData) const
 	{
 		if (gameMode.blockTypes[type].isTransparent)
 	        return;

@@ -1,7 +1,10 @@
 #pragma once
 #include "VoxelTypes.h"
 #include "Tools/Array3d.h"
+#include "Chunk.h"
 #include <queue>
+#include <vector>
+#include <memory>
 
 namespace Voxel {
 	class World;
@@ -9,13 +12,6 @@ namespace Voxel {
 	struct Block;
 	
 	class ChunkColumn {
-		Vector3 columnPosInWorld;
-		World* worldParent;
-		ChunkColumn* neighbours[4] {};
-	
-		int columnHeight;
-		void GenerateChunks();
-		void GenerateStructures();
 	public:
 		enum class ChunkStatus { GENERATED, DRAWN };
 		ChunkStatus status;
@@ -24,7 +20,7 @@ namespace Voxel {
 		Array3d<Block> chunkBlocks;
 		std::queue<VoxelMod> blocksModifications;
 	
-		Chunk** chunks;
+		std::vector<std::unique_ptr<Chunk>> chunks;
 		ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight);
 	
 		void SetBlock(Vector3i position, BlockID blockID);
@@ -42,9 +38,15 @@ namespace Voxel {
 		/// </summary>
 		void DeleteChunksObjects();
 	
-		// Funkcja zwraca sąsiedni chunk lub nullptr jeśli nie istnieje.
-		ChunkColumn* GetNeighbour(BlockSide side);
-	
-		~ChunkColumn();
+		std::weak_ptr<ChunkColumn> GetNeighbour(BlockSide side);
+
+	private:
+		Vector3 columnPosInWorld;
+		World *worldParent;
+		std::weak_ptr<ChunkColumn> neighbours[4]{};
+
+		int columnHeight;
+		void GenerateChunks();
+		void GenerateStructures();
 	};
 }

@@ -61,16 +61,16 @@ namespace Voxel {
 			neighbourChunkIndex--;
 		else
 		{
-			ChunkColumn* neighbourColumn = chunkColumn->GetNeighbour(side);
-			if (neighbourColumn == nullptr)
+			std::weak_ptr<ChunkColumn> neighbourColumn = chunkColumn->GetNeighbour(side);
+			if (neighbourColumn.expired())
 				return nullptr;
-			return neighbourColumn->chunks[chunkHeightIndex];
+			return neighbourColumn.lock()->chunks[chunkHeightIndex].get();
 		}
 	
 		if (neighbourChunkIndex < 0 || neighbourChunkIndex >= world->config.columnHeight)
 			return nullptr;
 	
-		return chunkColumn->chunks[neighbourChunkIndex];
+		return chunkColumn->chunks[neighbourChunkIndex].get();
 	}
 
 	void Chunk::CreateActorIfEmpty() {

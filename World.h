@@ -49,11 +49,6 @@ namespace Voxel {
 	using Json = nlohmann::json;
 	
 	class World {
-		Vector2i lastPlayerPos = Vector2i(-1, 0);
-		Vector2i currentPlayerPos = Vector2i(0, 0);
-		std::thread buildWorldThread;
-		bool isBuildWorldThreadEnd = false;
-
 	public:
 		const GameMode::Config& config;
 		GameMode &gameMode;
@@ -61,8 +56,7 @@ namespace Voxel {
 		std::vector<std::unique_ptr<Biome>> biomes;
 		std::unique_ptr<TerrainGenerator> terrainGenerator;
 
-		// ChunkPos, Chunk
-		std::unordered_map<ChunkPos, ChunkColumn *> chunks;
+		std::unordered_map<ChunkPos, std::shared_ptr<ChunkColumn>> chunks;
 
 		std::queue<VoxelMod> blocksModifications;
 
@@ -87,5 +81,10 @@ namespace Voxel {
 	private:
 		void UpdatePlayerPos(Vector3 PlayerLocation);
 		bool IsBlockSolid(Vector3 pos);
+
+		Vector2i lastPlayerPos = Vector2i(-1, 0);
+		Vector2i currentPlayerPos = Vector2i(0, 0);
+		std::thread buildWorldThread;
+		bool isBuildWorldThreadEnd = false;
 	};
 }
