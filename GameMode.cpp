@@ -14,9 +14,7 @@ namespace Voxel {
 	{
 		actorManagerQueue.Clear();
 
-		auto biomes = GenerateBiomes(biomesJson);
-		world = std::make_unique<World>(*this, std::move(biomes));
-		voxelMesher = std::make_unique<VoxelMesher>(*this);
+		world = std::make_unique<World>(*this, GenerateBiomes(biomesJson));
 
 		world->Start(playerPos);
 	}
@@ -56,13 +54,13 @@ namespace Voxel {
 		return BlockTypeStorage{ blockTypes };
 	}
 
-	std::vector<std::unique_ptr<Biome>> GameMode::GenerateBiomes(const nlohmann::json &biomesJson) const {
+	std::vector<std::unique_ptr<const Biome>> GameMode::GenerateBiomes(const nlohmann::json &biomesJson) const {
 		SM_PROFILE_ZONE;
-		std::vector<std::unique_ptr<Biome>> biomes;
+		std::vector<std::unique_ptr<const Biome>> biomes;
 
 		for (nlohmann::json biomeJ : biomesJson["biomes"]) {
-			biomes.push_back(std::make_unique<Biome>(biomeJ["name"]));
-			Biome &biome = *biomes.back();
+			Biome biome;
+			biome.biomeName = biomeJ["name"];
 			biome.atmosphereBlock = blockTypes.GetBlockTypeIDFromName(biomeJ["atmosphere"]);
 			biome.layer1stBlock = blockTypes.GetBlockTypeIDFromName(biomeJ["layer1st"]);
 			biome.layer2ndBlock = blockTypes.GetBlockTypeIDFromName(biomeJ["layer2nd"]);
@@ -72,6 +70,8 @@ namespace Voxel {
 			biome.majorFloraPlacementScale = biomeJ["majorFloraPlacementScale"];
 			biome.majorFloraPlacementThreshold = biomeJ["majorFloraPlacementThreshold"];
 			biome.placeMajorFlora = biomeJ["placeMajorFlora"];
+
+			biomes.push_back(std::make_unique<const Biome>(biome));
 		}
 
 		return biomes;

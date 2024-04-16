@@ -8,44 +8,48 @@
 
 namespace Voxel {
 	class World;
-	class Chunk;
 	struct Block;
 	
 	class ChunkColumn {
 	public:
 		enum class ChunkStatus { GENERATED, DRAWN };
-		ChunkStatus status;
-		bool toDraw = false;
+
+		ChunkColumn(Vector3 chunkColumnWorldPos, const World& worldParent, const int columnHeight);
 	
-		Array3d<Block> chunkBlocks;
-		std::queue<VoxelMod> blocksModifications;
-	
-		std::vector<std::unique_ptr<Chunk>> chunks;
-		ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight);
-	
-		void SetBlock(Vector3i position, BlockID blockID);
-		void ApplyModifiations();
-		Block& GetBlockAt(Vector3i position);
+		void SetBlock(const Vector3i &position, BlockID blockID);
+		const Block &GetBlockAt(const Vector3i &position) const;
+
+		void AddBlockModification(VoxelMod mod);
+		void ApplyModifications();
+
+		// Zmienia status na TO__DRAW.
+		void AddChunksObjects();
+		// Tworzy mesh i zmienia status na DRAWN.
 		void DrawChunks();
-	
-		/// <summary>
-		/// Odwrotność DeleteChunksObjects, zmienia status na TO__DRAW
-		/// </summary>
-		/// <param name="chunkColumnPos"></param>
-		void AddChunksObjects(Vector3 chunkColumnWorldPos);
-		/// <summary>
-		/// Usuwa rzeczy związane z renderowaniem chunków i zmienia status na GENERATED
-		/// </summary>
+		// Usuwa mesh i zmienia status na GENERATED.
 		void DeleteChunksObjects();
-	
-		std::weak_ptr<ChunkColumn> GetNeighbour(BlockSide side);
+
+		std::weak_ptr<ChunkColumn> GetNeighbour(BlockSide side) const;
+
+		Chunk &GetChunk(int y) { return *chunks.at(y).get(); }
+		const Chunk &GetChunk(int y) const { return *chunks.at(y).get(); }
+		Array3d<Block> &GetBlockStorage() { return chunkBlocks; }
+		const Array3d<Block> &GetBlockStorage() const { return chunkBlocks; }
+		ChunkStatus GetStatus() const { return status; }
+		bool GetToDraw() const { return toDraw; }
 
 	private:
-		Vector3 columnPosInWorld;
-		World *worldParent;
-		std::weak_ptr<ChunkColumn> neighbours[4]{};
+		ChunkStatus status = ChunkStatus::GENERATED;
+		std::vector<std::unique_ptr<Chunk>> chunks;
+		std::queue<VoxelMod> blocksModifications;
+		Array3d<Block> chunkBlocks;
+		bool toDraw = false;
 
-		int columnHeight;
+		mutable std::weak_ptr<ChunkColumn> neighbours[4]{};
+		const World &worldParent;
+		const Vector3 columnPosInWorld;
+		const int columnHeight;
+
 		void GenerateChunks();
 		void GenerateStructures();
 	};

@@ -40,31 +40,29 @@ void VoxelController::Ready() {
 void VoxelController::Process() {
 }
 
-void VoxelController::DestroyBlock() {
+void VoxelController::DestroyBlock() const {
 	Camera3D* camera = GetCurrentCamera3D();
 	Vector3 direction = -camera->get_global_transform().basis.get_column(2);
 	Vector3 startPoint = camera->get_global_transform().origin;
-	Vector3 blockPos;
-	if (voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos))
+
+	if (auto result = voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction)))
 	{
-		voxelNode->gameMode->world->SetBlock(blockPos, 0);
+		voxelNode->gameMode->world->SetBlock(result.hitPoint, 0);
 	}
 }
 
-void VoxelController::PlaceBlock()
-{
+void VoxelController::PlaceBlock() const {
 	Camera3D* camera = GetCurrentCamera3D();
 	Vector3 direction = -camera->get_global_transform().basis.get_column(2);
 	Vector3 startPoint = camera->get_global_transform().origin;
-	Vector3 blockPos;
-	Vector3 blockPlacePos;
-	if (voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), &blockPos, 100.f, &blockPlacePos))
+
+	if (auto result = voxelNode->gameMode->world->BlockRayCast(ConvertYZ(startPoint), ConvertYZ(direction), 100.f))
 	{
-		voxelNode->gameMode->world->SetBlock(blockPlacePos, 2);
+		voxelNode->gameMode->world->SetBlock(result.previousHitPoint, 2);
 	}
 }
 
-Camera3D *VoxelController::GetCurrentCamera3D() {
+Camera3D *VoxelController::GetCurrentCamera3D() const {
 	Camera3D *camera = nullptr;
 	if (Viewport* viewport = get_viewport())
 	{

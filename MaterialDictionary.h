@@ -7,7 +7,7 @@
 
 namespace Voxel {
 	class MaterialDictionary {
-public:
+	public:
 		MaterialDictionary(const Dictionary &materials);
 
 		Ref<Material> GetBlockTypeMaterial(const BlockType &blockType) const;

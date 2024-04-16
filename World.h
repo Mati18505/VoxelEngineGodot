@@ -1,17 +1,13 @@
 #pragma once
 
-#include <map>
+#include "GameMode.h"
+#include "vendor/nlohmann/json.hpp"
+#include "VoxelTypes.h"
 #include <unordered_map>
 #include <thread>
 #include <vector>
-#include <math.h>
-#include <array>
 #include <queue>
-#include <string>
 #include <memory>
-#include "vendor/nlohmann/json.hpp"
-#include "VoxelTypes.h"
-#include "GameMode.h"
 
 namespace Voxel
 {
@@ -19,10 +15,9 @@ namespace Voxel
 		int x;
 		int y;
 	
-		ChunkPos(int xPos, int yPos) {
-			x = xPos;
-			y = yPos;
-		}
+		ChunkPos(int xPos, int yPos) :
+			x(xPos), y(yPos)
+		{}
 	
 		bool operator==(const ChunkPos &other) const {
 			return x == other.x && y == other.y;
@@ -41,46 +36,49 @@ struct hash<Voxel::ChunkPos> {
 } //namespace std
 
 namespace Voxel {
-	struct Rectangle;
 	struct BlockType;
 	class ChunkColumn;
 	class TerrainGenerator;
-	class Biome;
+	struct Biome;
 	using Json = nlohmann::json;
 	
 	class World {
 	public:
-		const GameMode::Config& config;
+		World(GameMode &gameMode, std::vector<std::unique_ptr<const Biome>> biomes);
+		~World();
+
+		void Start(const Vector3 &playerLocation);
+		void Update(const Vector3 &playerLocation);
+
+		void SetBlock(const Vector3 &blockPositionInWorld, BlockID blockID);
+
+		ChunkPos GenerateChunkColumnID(const Vector3 &chunkPos) const;
+		Vector3 GetChunkColumnPosByBlockWorldPosition(const Vector3 &blockWorldPosition) const;
+		// Zwraca typ bloku w chunku lub nullptr jeśli poza światem.
+		const BlockType *GetBlockTypeInWorld(const Vector3 &blockWorldPosition) const;
+
+		struct RayCastResult {
+			bool hitted = false;
+			Vector3 hitPoint{};
+			Vector3 previousHitPoint{};
+
+			operator bool() { return hitted; }
+		};
+		RayCastResult BlockRayCast(Vector3 startPoint, const Vector3 &direction, float range = 100) const;
+
 		GameMode &gameMode;
-
-		std::vector<std::unique_ptr<Biome>> biomes;
-		std::unique_ptr<TerrainGenerator> terrainGenerator;
-
 		std::unordered_map<ChunkPos, std::shared_ptr<ChunkColumn>> chunks;
-
 		std::queue<VoxelMod> blocksModifications;
+		std::unique_ptr<TerrainGenerator> terrainGenerator;
+		const GameMode::Config &config;
+		std::vector<std::unique_ptr<const Biome>> biomes;
 
-		World(GameMode &gameMode, std::vector<std::unique_ptr<Biome>> biomes);
-
-		void Start(Vector3 playerLocation);
-		void Update(Vector3 playerLocation);
-
+	private:
 		void GenerateWorld();
 		void BuildWorld();
 
-		ChunkPos GenerateChunkColumnID(Vector3 chunkPos);
-		Vector3 GetChunkColumnPosByBlockWorldPosition(Vector3 blockWorldPosition);
-		// Zwraca typ bloku w chunku lub nullptr jeśli poza światem.
-		const BlockType* GetBlockTypeInWorld(Vector3 blockWorldPosition);
-
-		bool BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3 *hitPoint, float range = 100, Vector3 *lastHitPoint = nullptr);
-		void SetBlock(Vector3 blockPositionInWorld, BlockID blockID);
-
-		~World();
-
-	private:
-		void UpdatePlayerPos(Vector3 PlayerLocation);
-		bool IsBlockSolid(Vector3 pos);
+		void UpdatePlayerPos(const Vector3 &PlayerLocation);
+		bool IsBlockSolid(const Vector3 &pos) const;
 
 		Vector2i lastPlayerPos = Vector2i(-1, 0);
 		Vector2i currentPlayerPos = Vector2i(0, 0);

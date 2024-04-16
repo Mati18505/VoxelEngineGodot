@@ -3,7 +3,7 @@
 
 namespace Voxel {
 	BlockType::BlockType(std::string name, bool isTransparent, bool isEveryBlockSideSame, std::string materialName, bool isTranslucent, bool isSolid) :
-		name(name), isTransparent(isTransparent), isEveryBlockSideSame(isEveryBlockSideSame), materialName(materialName), isTranslucent(isTranslucent), isSolid(isSolid)
+		name(std::move(name)), isTransparent(isTransparent), isEveryBlockSideSame(isEveryBlockSideSame), materialName(std::move(materialName)), isTranslucent(isTranslucent), isSolid(isSolid)
 	{}
 	
 	int BlockType::GetBlockSideTextureIndex(BlockSide side) const {

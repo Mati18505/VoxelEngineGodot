@@ -10,22 +10,22 @@
 #include "Tools/Profiler.h"
 
 namespace Voxel {
-	World::World(GameMode &gameMode, std::vector<std::unique_ptr<Biome>> biomes) :
+	World::World(GameMode &gameMode, std::vector<std::unique_ptr<const Biome>> biomes) :
 		biomes(std::move(biomes)), gameMode(gameMode), config(gameMode.config)
 	{}
 	
-	void World::Start(Vector3 playerLocation) {
+	void World::Start(const Vector3 &playerLocation) {
 		SM_PROFILE_ZONE;
 		print_line("start world\n");
 			
-		terrainGenerator = std::make_unique<TerrainGenerator>(this);
+		terrainGenerator = std::make_unique<TerrainGenerator>(*this);
 	
 		Update(playerLocation);
 		if(config.useThreading)
 			buildWorldThread = std::thread(&World::BuildWorld, this);
 	}
 	
-	void World::Update(Vector3 playerLocation) {
+	void World::Update(const Vector3 &playerLocation) {
 		SM_PROFILE_ZONE;
 		UpdatePlayerPos(playerLocation);
 	
@@ -48,7 +48,7 @@ namespace Voxel {
 					ChunkPos chunkPos = pair.first;
 					auto chunk = pair.second;
 	
-					if (chunk->toDraw == true)
+					if (chunk->GetToDraw() == true)
 						chunk->DrawChunks();
 				}
 	
@@ -61,7 +61,7 @@ namespace Voxel {
 				ChunkPos chunkPos = pair.first;
 				auto chunk = pair.second;
 	
-				if(chunk->toDraw == true)
+				if(chunk->GetToDraw() == true)
 					chunk->DrawChunks();
 			}
 		}
@@ -86,7 +86,7 @@ namespace Voxel {
 
 					auto finded = chunks.find(chunkID);
 					if (finded == chunks.end()) {
-						auto chunkColumn = std::make_shared<ChunkColumn>(chunkPos, this, config.columnHeight);
+						auto chunkColumn = std::make_shared<ChunkColumn>(chunkPos, *this, config.columnHeight);
 						chunks.emplace(chunkID, std::move(chunkColumn));
 						chunksGenerated++;
 					}
@@ -112,7 +112,7 @@ namespace Voxel {
 
 					VoxelMod chunkMod{ mod.id, blockPosInChunk };
 
-					finded->second->blocksModifications.push(chunkMod);
+					finded->second->AddBlockModification(chunkMod);
 					chunksToApplyModifiations.push_back(finded->second);
 				} else
 					overdueBlocksModifications.push(mod); // TODO: zamiast wpisywać do tej listy, przechowywać metadane w chunkach nie wygenerowanych.
@@ -120,7 +120,7 @@ namespace Voxel {
 			blocksModifications = overdueBlocksModifications;
 
 			for (auto& chunk : chunksToApplyModifiations) {
-				chunk->ApplyModifiations();
+				chunk->ApplyModifications();
 			}
 		}
 		
@@ -138,8 +138,8 @@ namespace Voxel {
 					if (!(finded == chunks.end())) {
 						chunksInRenderDistance.push_back(chunkID);
 
-						if (finded->second->status == ChunkColumn::ChunkStatus::GENERATED && finded->second->toDraw == false) {
-							finded->second->AddChunksObjects(chunkPos);
+						if (finded->second->GetStatus() == ChunkColumn::ChunkStatus::GENERATED && finded->second->GetToDraw() == false) {
+							finded->second->AddChunksObjects();
 							chunksToDrawCount++;
 						}
 					}
@@ -154,7 +154,7 @@ namespace Voxel {
 				ChunkPos chunkPos = pair.first;
 				auto& chunk = pair.second;
 
-				if (chunk->status == ChunkColumn::ChunkStatus::DRAWN || chunk->toDraw == true) {
+				if (chunk->GetStatus() == ChunkColumn::ChunkStatus::DRAWN || chunk->GetToDraw() == true) {
 					auto finded = std::find(chunksInRenderDistance.begin(), chunksInRenderDistance.end(), chunkPos);
 					if (finded == chunksInRenderDistance.end()) {
 						chunk->DeleteChunksObjects();
@@ -170,16 +170,16 @@ namespace Voxel {
 		SM_PROFILE_LOG(ss.str().c_str(), ss.str().size());
 	}
 	
-	ChunkPos World::GenerateChunkColumnID(Vector3 chunkPos) {
+	ChunkPos World::GenerateChunkColumnID(const Vector3 &chunkPos) const {
 		return ChunkPos(int(std::floor(chunkPos.x)), int(std::floor(chunkPos.y)));
 	}
 	
-	Vector3 World::GetChunkColumnPosByBlockWorldPosition(Vector3 blockWorldPosition)
+	Vector3 World::GetChunkColumnPosByBlockWorldPosition(const Vector3 &blockWorldPosition) const
 	{
 		return Vector3(floor(blockWorldPosition.x / config.chunkScaledSize) * config.chunkScaledSize, floor(blockWorldPosition.y / config.chunkScaledSize) * config.chunkScaledSize, 0);
 	}
 	
-	const BlockType* World::GetBlockTypeInWorld(Vector3 blockWorldPosition)
+	const BlockType *World::GetBlockTypeInWorld(const Vector3 &blockWorldPosition) const
 	{
 		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockWorldPosition);
@@ -203,12 +203,12 @@ namespace Voxel {
 		return { round(v.x / scale) * scale, round(v.y / scale) * scale, round(v.z / scale) * scale };
 	}
 	
-	bool World::BlockRayCast(Vector3 startPoint, Vector3 direction, Vector3* hitPoint, float range, Vector3* lastHitPoint)
+	World::RayCastResult World::BlockRayCast(Vector3 startPoint, const Vector3 &direction, float range) const
 	{
 		SM_PROFILE_ZONE;
 		range *= config.worldScale;
 	
-	    Vector3 currentPos = startPoint;
+	    Vector3 currentPos = std::move(startPoint);
 	    float currentDistance = 0;
 	    bool isExceededRange = false;
 
@@ -225,19 +225,17 @@ namespace Voxel {
 	
 			isBlockTypeSolid = IsBlockSolid(RoundVectorInScale(currentPos, config.worldScale));
 	    }
+
+		RayCastResult result;
 	
-	    *hitPoint = RoundVectorInScale(currentPos, config.worldScale);
-	
-		if (lastHitPoint != nullptr)
-			*lastHitPoint = RoundVectorInScale(currentPos - direction * config.blockRayCastIncrement, config.worldScale);
-	
-	    if (!isExceededRange)
-	        return true;
-	    return false;
+	    result.hitPoint = RoundVectorInScale(currentPos, config.worldScale);
+		result.previousHitPoint = RoundVectorInScale(currentPos - direction * config.blockRayCastIncrement, config.worldScale);
+	    result.hitted = !isExceededRange;
+		return result;
 	}
 	
 	
-	void World::SetBlock(Vector3 blockPositionInWorld, BlockID blockID) {
+	void World::SetBlock(const Vector3 &blockPositionInWorld, BlockID blockID) {
 		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockPositionInWorld);
 		auto finded = chunks.find(GenerateChunkColumnID(chunkPos)); // Szukanie chunka w map chunks.
@@ -257,13 +255,13 @@ namespace Voxel {
 		print_line("World deleted\n");
 	}
 	
-	void World::UpdatePlayerPos(Vector3 PlayerLocation) {
+	void World::UpdatePlayerPos(const Vector3 &PlayerLocation) {
 		
 		currentPlayerPos.x = floor(PlayerLocation.x / config.chunkScaledSize);
 		currentPlayerPos.y = floor(PlayerLocation.y / config.chunkScaledSize);
 	}
 
-	bool World::IsBlockSolid(Vector3 pos) {
+	bool World::IsBlockSolid(const Vector3 &pos) const {
 		if (const BlockType *blockType = GetBlockTypeInWorld(pos))
 			return blockType->isSolid;
 

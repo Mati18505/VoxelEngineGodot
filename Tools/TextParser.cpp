@@ -7,8 +7,8 @@ namespace Voxel {
 		std::istringstream iss(text);
 
 		for (std::string line; std::getline(iss, line);) {
-			line = EraseCharacters(line, '\r');
-			line = EraseCharacters(line, '\n');
+			line = EraseCharacters(std::move(line), '\r');
+			line = EraseCharacters(std::move(line), '\n');
 
 			size_t sepPos = line.find(separator);
 			std::string key = line.substr(0, sepPos);
@@ -18,7 +18,7 @@ namespace Voxel {
 		}
 	}
 
-	bool TextParser::GetInt(const std::string &propertyName, int &variable) {
+	bool TextParser::GetInt(const std::string &propertyName, int &variable) const {
 		auto finded = data.find(propertyName);
 		if (!(finded == data.end())) {
 			variable = std::stoi(finded->second);
@@ -28,7 +28,7 @@ namespace Voxel {
 	}
 
 
-	bool TextParser::GetBool(const std::string &propertyName, bool &variable) {
+	bool TextParser::GetBool(const std::string &propertyName, bool &variable) const {
 		auto finded = data.find(propertyName);
 		if (!(finded == data.end())) {
 			if (finded->second == "true")
@@ -41,7 +41,7 @@ namespace Voxel {
 	}
 
 
-	float TextParser::GetFloat(const std::string &propertyName, float &variable) {
+	float TextParser::GetFloat(const std::string &propertyName, float &variable) const {
 		auto finded = data.find(propertyName);
 		if (!(finded == data.end())) {
 			variable = std::stof(finded->second);
@@ -50,9 +50,7 @@ namespace Voxel {
 		return false;
 	}
 
-	std::string TextParser::EraseCharacters(const std::string &string, const char value) {
-		std::string s = string;
-
+	std::string TextParser::EraseCharacters(std::string s, const char value) const {
 		auto it = std::remove(s.begin(), s.end(), value);
 		s.erase(it, s.end());
 

@@ -2,37 +2,30 @@
 #include "Chunk.h"
 
 #include "Tools/ActorManager.h"
-
 #include "Block.h"
 #include "World.h"
 #include "ChunkColumn.h"
 #include "VoxelMesher.h"
-#include "BlockType.h"
-#include "VoxelNode.h"
-#include "MaterialDictionary.h"
 #include "Tools/Profiler.h"
 
-#define chunkSize world->config.chunkSize
-#define chunkScaledSize world->config.chunkScaledSize
-#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * world->config.columnHeight)
+#define chunkSize world.config.chunkSize
+#define chunkScaledSize world.config.chunkScaledSize
+#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * world.config.columnHeight)
 
 #define ConvertYZ(vec3) Vector3(vec3.x, vec3.z, vec3.y)
 
 namespace Voxel {
-	Chunk::Chunk(Vector3 chunkWorldPosition, World* worldParent, ChunkColumn* chunkColumnParent, char chunkHeight)
+	Chunk::Chunk(Vector3 chunkWorldPosition, const World& worldParent, ChunkColumn& chunkColumnParent, int chunkHeight) :
+		world(worldParent), chunkColumn(chunkColumnParent), chunkHeight(chunkHeight)
 	{
-		world = worldParent;
-		transform = Transform3D();
 		transform.origin = ConvertYZ(chunkWorldPosition);
-		Vector3 scale(world->config.worldScale, world->config.worldScale, world->config.worldScale);
+		Vector3 scale(world.config.worldScale, world.config.worldScale, world.config.worldScale);
 		transform.scale(scale);
-		chunkColumn = chunkColumnParent;
-		this->chunkHeight = chunkHeight;
 	}
 	
 	void Chunk::DrawChunk() {
 		SM_PROFILE_ZONE;
-		chunkMesh = world->gameMode.voxelMesher->CreateMesh(chunkColumn->chunkBlocks, chunkHeight, *this);
+		chunkMesh = world.gameMode.voxelMesher->CreateMesh(chunkColumn.GetBlockStorage(), chunkHeight, *this);
 		CreateActorIfEmpty();
 		UpdateMesh();
 	}
@@ -40,7 +33,7 @@ namespace Voxel {
 	const Block& Chunk::GetBlockAt(const Vector3& position) const {
 		int posZ = int(position.z) + chunkHeight;
 	
-		return chunkColumn->chunkBlocks.At({ int(position.x), int(position.y), int(posZ) });
+		return chunkColumn.GetBlockAt({ int(position.x), int(position.y), int(posZ) });
 	}
 	
 	const Chunk* Chunk::GetNeighbour(BlockSide side) const {
@@ -61,23 +54,23 @@ namespace Voxel {
 			neighbourChunkIndex--;
 		else
 		{
-			std::weak_ptr<ChunkColumn> neighbourColumn = chunkColumn->GetNeighbour(side);
+			std::weak_ptr<ChunkColumn> neighbourColumn = chunkColumn.GetNeighbour(side);
 			if (neighbourColumn.expired())
 				return nullptr;
-			return neighbourColumn.lock()->chunks[chunkHeightIndex].get();
+			return &neighbourColumn.lock()->GetChunk(chunkHeightIndex);
 		}
 	
-		if (neighbourChunkIndex < 0 || neighbourChunkIndex >= world->config.columnHeight)
+		if (neighbourChunkIndex < 0 || neighbourChunkIndex >= world.config.columnHeight)
 			return nullptr;
 	
-		return chunkColumn->chunks[neighbourChunkIndex].get();
+		return &chunkColumn.GetChunk(neighbourChunkIndex);
 	}
 
 	void Chunk::CreateActorIfEmpty() {
 		SM_PROFILE_ZONE;
 		if (chunkActor.is_null())
 		{
-			world->gameMode.actorManagerQueue.AddFunction([=]() {
+			world.gameMode.actorManagerQueue.AddFunction([=]() {
 				ActorManager::Get().CreateActor(chunkActor, transform);
 			});
 		}
@@ -85,7 +78,7 @@ namespace Voxel {
 
 	void Chunk::UpdateMesh() {
 		SM_PROFILE_ZONE;
-		world->gameMode.actorManagerQueue.AddFunction([=]() {
+		world.gameMode.actorManagerQueue.AddFunction([=]() {
 			ActorManager::Get().UpdateMesh(chunkActor, chunkMesh);
 		});
 	}
@@ -93,7 +86,7 @@ namespace Voxel {
 	void Chunk::DeleteObject()
 	{
 		SM_PROFILE_ZONE;
-		world->gameMode.actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
+		world.gameMode.actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
 			ActorManager::Get().DestroyActor(chunkActor);
 		});
 		chunkActor = RID();

@@ -7,12 +7,12 @@ namespace Voxel {
 	public:
 		void Parse(const std::string &text, char separator = ':');
 	
-		bool GetInt(const std::string &propertyName, int &variable);
-		bool GetBool(const std::string &propertyName, bool &variable);
-		float GetFloat(const std::string &propertyName, float &variable);
+		bool GetInt(const std::string &propertyName, int &variable) const;
+		bool GetBool(const std::string &propertyName, bool &variable) const;
+		float GetFloat(const std::string &propertyName, float &variable) const;
 	private:
 		std::map<std::string, std::string> data;
 
-		std::string EraseCharacters(const std::string &string, const char value);
+		std::string EraseCharacters(std::string s, const char value) const;
 	};
 }

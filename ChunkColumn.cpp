@@ -8,57 +8,54 @@
 #include "TerrainGenerator.h"
 #include "Tools/Profiler.h"
 
-#define chunkSize worldParent->config.chunkSize
-#define chunkScaledSize worldParent->config.chunkScaledSize
-#define worldScale worldParent->config.worldScale
+#define chunkSize worldParent.config.chunkSize
+#define chunkScaledSize worldParent.config.chunkScaledSize
+#define worldScale worldParent.config.worldScale
 
 #define Array3D(x, y, z, width, height) ((y) * width * height) + ((z) * width) + (x)
-#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * worldParent->config.columnHeight)
+#define Chunk3DArray(x, y, z) Array3D(x, y, z, chunkSize, chunkSize * worldParent.config.columnHeight)
 
 namespace Voxel {
-	ChunkColumn::ChunkColumn(Vector3 chunkColumnWorldPos, World* worldParent, const int columnHeight) :
-			chunkBlocks(Vector3i(chunkSize, chunkSize, chunkSize * columnHeight)) {
-		chunks.reserve(columnHeight);
+	ChunkColumn::ChunkColumn(Vector3 chunkColumnWorldPos, const World& worldParent, const int columnHeight) :
+			chunkBlocks(Vector3i(chunkSize, chunkSize, chunkSize * columnHeight)),
+			columnHeight(columnHeight), worldParent(worldParent), columnPosInWorld(std::move(chunkColumnWorldPos))
+	{
 		SM_PROFILE_ZONE;
-		this->columnHeight = columnHeight;
-		this->columnPosInWorld = chunkColumnWorldPos;
-		this->worldParent = worldParent;
+		chunks.reserve(columnHeight);
 		GenerateChunks();
 		GenerateStructures();
-		this->status = ChunkStatus::GENERATED;
 	}
 	
 	void ChunkColumn::GenerateChunks() {
 		SM_PROFILE_ZONE;
 		for (int chunkZ = 0; chunkZ < columnHeight; chunkZ++) 
-			chunks.push_back(std::make_unique<Chunk>(columnPosInWorld + Vector3(0, 0, chunkZ * chunkScaledSize), worldParent, this, chunkZ * chunkSize));
+			chunks.push_back(std::make_unique<Chunk>(columnPosInWorld + Vector3(0, 0, chunkZ * chunkScaledSize), worldParent, *this, chunkZ * chunkSize));
 	
-		worldParent->terrainGenerator->GenerateTerrain(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
+		worldParent.terrainGenerator->GenerateTerrain(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
 	
 	void ChunkColumn::GenerateStructures() {
 		SM_PROFILE_ZONE;
-		worldParent->terrainGenerator->GenerateStructures(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
+		worldParent.terrainGenerator->GenerateStructures(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
 	
 	void ChunkColumn::DrawChunks() {
 		SM_PROFILE_ZONE;
 		for (int i = 0; i < columnHeight; i++)
 			chunks[i]->DrawChunk();
-		this->status = ChunkStatus::DRAWN;
+		status = ChunkStatus::DRAWN;
 		toDraw = false;
 	}
 	
-	void ChunkColumn::AddChunksObjects(Vector3 chunkColumnWorldPos) {
+	void ChunkColumn::AddChunksObjects() {
 		toDraw = true;
 	}
 	
-	
-	void ChunkColumn::SetBlock(Vector3i position, BlockID blockID) {
+	void ChunkColumn::SetBlock(const Vector3i &position, BlockID blockID) {
 		SM_PROFILE_ZONE;
 		int chunkHeight = floor(position.z / chunkSize);
 	
-		this->chunkBlocks.At({ position.x, position.y, position.z }) = Block(blockID);
+		chunkBlocks.At({ position.x, position.y, position.z }) = Block(blockID);
 	
 		int posZInChunk = position.z % chunkSize;
 	
@@ -85,35 +82,39 @@ namespace Voxel {
 		{
 			if (chunk != nullptr)
 			{
-				if (chunk->chunkColumn->status == ChunkStatus::DRAWN)
+				if (chunk->chunkColumn.status == ChunkStatus::DRAWN)
 					chunk->DrawChunk(); // TODO: wielowątkowość: ustawianie flagi needDraw
 			}
 		}
 	}
 	
-	void ChunkColumn::ApplyModifiations()
+	void ChunkColumn::ApplyModifications()
 	{
 		while (!blocksModifications.empty())
 		{
-			VoxelMod mod = blocksModifications.front();
+			const VoxelMod& mod = blocksModifications.front();
+			chunkBlocks.At({ mod.pos.x, mod.pos.y, mod.pos.z }) = Block(mod.id);
 			blocksModifications.pop();
-			this->chunkBlocks.At({ mod.pos.x, mod.pos.y, mod.pos.z }) = Block(mod.id);
 		}
 	}
 	
-	Block& ChunkColumn::GetBlockAt(Vector3i position) {
-		return chunkBlocks.At({ position.x, position.y, position.z });
+	const Block &ChunkColumn::GetBlockAt(const Vector3i &position) const {
+		return chunkBlocks.At(position);
 	}
 	
+	void ChunkColumn::AddBlockModification(VoxelMod mod) {
+		blocksModifications.push(std::move(mod));
+	}
+
 	void ChunkColumn::DeleteChunksObjects() {
 		SM_PROFILE_ZONE;
 		toDraw = false;
 		for (int i = 0; i < columnHeight; i++)
 			chunks[i]->DeleteObject();
-		this->status = ChunkStatus::GENERATED;
+		status = ChunkStatus::GENERATED;
 	}
 	
-	std::weak_ptr<ChunkColumn> ChunkColumn::GetNeighbour(BlockSide side)
+	std::weak_ptr<ChunkColumn> ChunkColumn::GetNeighbour(BlockSide side) const
 	{
 		Vector3i neighbourDirection;
 		int neighbourIndex;
@@ -143,9 +144,9 @@ namespace Voxel {
 		// Jeśli chunka nie ma w tablicy neighbours to go szukamy w świecie.
 		if (neighbours[neighbourIndex].expired())
 		{
-			ChunkPos neighbourPos = worldParent->GenerateChunkColumnID({ columnPosInWorld.x + chunkScaledSize * neighbourDirection.x , columnPosInWorld.y + chunkScaledSize * neighbourDirection.y, 0 });
-			auto finded = worldParent->chunks.find(neighbourPos);
-			if (finded != worldParent->chunks.end())
+			ChunkPos neighbourPos = worldParent.GenerateChunkColumnID({ columnPosInWorld.x + chunkScaledSize * neighbourDirection.x , columnPosInWorld.y + chunkScaledSize * neighbourDirection.y, 0 });
+			auto finded = worldParent.chunks.find(neighbourPos);
+			if (finded != worldParent.chunks.end())
 			{
 				neighbours[neighbourIndex] = finded->second;
 			}

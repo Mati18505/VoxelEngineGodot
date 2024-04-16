@@ -1,18 +1,16 @@
 #pragma once
-#include <core/math/vector3.h>
-#include "vendor/nlohmann/json.hpp"
-#include "Tools/ActorManagerQueue.h"
+#include "VoxelTypes.h"
 #include "TextureDictionary.h"
 #include "MaterialDictionary.h"
-#include "VoxelTypes.h"
 #include "BlockTypeStorage.h"
+#include "Tools/ActorManagerQueue.h"
 #include "vendor/nlohmann/json.hpp"
 
 class VoxelNode;
 namespace Voxel {
 	class VoxelMesher;
 	class World;
-	class Biome;
+	struct Biome;
 
 	class GameMode {
 	public:
@@ -34,14 +32,15 @@ namespace Voxel {
 
 		std::unique_ptr<World> world;
 		ActorManagerQueue actorManagerQueue;
-		std::unique_ptr<const VoxelMesher> voxelMesher;
+		const std::unique_ptr<const VoxelMesher> voxelMesher = std::make_unique<VoxelMesher>(*this);
 		const TextureDictionary textureDictionary;
 		const MaterialDictionary materialDictionary;
 		const BlockTypeStorage blockTypes;
-	private:
-		BlockTypeStorage GenerateBlockTypes(const nlohmann::json &jsonFile) const;
-		std::vector<std::unique_ptr<Biome>> GenerateBiomes(const nlohmann::json &biomesJson) const;
 
+	private:
 		const VoxelNode &voxelNode;
+
+		BlockTypeStorage GenerateBlockTypes(const nlohmann::json &jsonFile) const;
+		std::vector<std::unique_ptr<const Biome>> GenerateBiomes(const nlohmann::json &biomesJson) const;
 	};
 }

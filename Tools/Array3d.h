@@ -27,14 +27,14 @@ namespace Voxel {
 			other.elements = nullptr;
 		}
 	
-		T& At(Vector3i index)
+		T &At(const Vector3i &index)
 		{
 			if(CheckBounds(index))
 				throw new std::invalid_argument("Position out of range!");
 			return elements[Array3D(index.x, index.y, index.z, size.x, size.z)];
 		}
 
-		const T& At(Vector3i index) const
+		const T &At(const Vector3i &index) const
 		{
 			if(CheckBounds(index))
 				throw new std::invalid_argument("Position out of range!");
@@ -87,7 +87,7 @@ namespace Voxel {
 		Vector3i size;
 	
 		//True if index out of range
-		bool CheckBounds(Vector3i index) const {
+		bool CheckBounds(const Vector3i &index) const {
 			return (index.x >= size.x || index.x < 0 ||
 					index.y >= size.y || index.y < 0 ||
 					index.z >= size.z || index.z < 0);

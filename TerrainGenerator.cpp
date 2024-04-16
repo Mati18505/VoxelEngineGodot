@@ -8,10 +8,10 @@
 #include "Tools/Profiler.h"
 
 namespace Voxel {
-	void TerrainGenerator::GenerateTerrain(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
+	void TerrainGenerator::GenerateTerrain(Array3d<Block> &chunkBlocks, Vector2i chunkPosInWorld) const
 	{
 		SM_PROFILE_ZONE;
-		const int chunkSize = world->config.chunkSize;
+		const int chunkSize = world.config.chunkSize;
 		for (int y = 0; y < chunkSize; y++)
 		{
 			for (int x = 0; x < chunkSize; x++)
@@ -19,10 +19,10 @@ namespace Voxel {
 				float worldX = x + chunkPosInWorld.x;
 				float worldY = y + chunkPosInWorld.y;
 	
-				Biome& biome = GetBiome(worldX, worldY);
+				const Biome &biome = GetBiome(worldX, worldY);
 				float generatedHeight = GenerateHeight(worldX, worldY);
 	
-				for (int z = 0; z < world->config.columnHeight * chunkSize; z++) 
+				for (int z = 0; z < world.config.columnHeight * chunkSize; z++) 
 				{
 					int worldZ = z;
 					BlockID blockID = GenerateVoxel(biome, worldZ, generatedHeight);
@@ -34,18 +34,18 @@ namespace Voxel {
 		}
 	}
 	
-	void TerrainGenerator::GenerateStructures(Array3d<Block>& chunkBlocks, Vector2i chunkPosInWorld)
+	void TerrainGenerator::GenerateStructures(Array3d<Block> &chunkBlocks, Vector2i chunkPosInWorld) const
 	{
 		SM_PROFILE_ZONE;
-		const int chunkSize = world->config.chunkSize;
-		const int columnHeight = world->config.columnHeight;
+		const int chunkSize = world.config.chunkSize;
+		const int columnHeight = world.config.columnHeight;
 		for (int y = 0; y < chunkSize; y++)
 		{
 			for (int x = 0; x < chunkSize; x++)
 			{
 				int worldX = x + chunkPosInWorld.x;
 				int worldY = y + chunkPosInWorld.y;
-				Biome& biome = GetBiome(worldX, worldY);
+				const Biome &biome = GetBiome(worldX, worldY);
 	
 				if (!biome.placeMajorFlora)
 					continue;
@@ -71,7 +71,7 @@ namespace Voxel {
 				//Wygeneruj pień
 				for (int z = treeRootZ; z < treeRootZ + 5; z++)
 				{
-					world->blocksModifications.push({ 3, {worldX, worldY, z} });
+					world.blocksModifications.push({ 3, {worldX, worldY, z} });
 				}
 	
 				//wygeneruj liście
@@ -89,7 +89,7 @@ namespace Voxel {
 							int totalWorldX = totalX + chunkPosInWorld.x;
 							int totalWorldY = totalY + chunkPosInWorld.y;
 	
-							world->blocksModifications.push({ 4, {totalWorldX, totalWorldY, totalZ} });
+							world.blocksModifications.push({ 4, {totalWorldX, totalWorldY, totalZ} });
 						}
 					}
 				}
@@ -97,11 +97,11 @@ namespace Voxel {
 		}
 	}
 	
-	float TerrainGenerator::GenerateHeight(float worldX, float worldY) {
+	float TerrainGenerator::GenerateHeight(float worldX, float worldY) const {
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
 		noise.set_frequency(frequency);
-		noise.set_seed(world->config.seed);
+		noise.set_seed(world.config.seed);
 	
 		const size_t octavesAmount = 4;
 		float octaveFrequencies[octavesAmount] = { 0.03f, 0.01f, 0.02f, 0.005f };
@@ -121,21 +121,21 @@ namespace Voxel {
 		return height;
 	}
 	
-	Biome& TerrainGenerator::GetBiome(float worldX, float worldY)
+	const Biome &TerrainGenerator::GetBiome(float worldX, float worldY) const
 	{
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_PERLIN);
 		noise.set_frequency(.005f);
-		noise.set_seed(world->config.seed);
+		noise.set_seed(world.config.seed);
 	
 		size_t index = 0;
 		if (noise.get_noise_2d(worldX, worldY) > 0.3f)
 			index = 1;
 	
-		return *world->biomes[index];
+		return *world.biomes[index];
 	}
 	
-	BlockID TerrainGenerator::GenerateVoxel(Biome& biome, int worldZ, int generatedHeight)
+	BlockID TerrainGenerator::GenerateVoxel(const Biome &biome, int worldZ, int generatedHeight) const
 	{
 		BlockID blockID;
 		if (worldZ > generatedHeight)
@@ -149,10 +149,10 @@ namespace Voxel {
 		return blockID;
 	}
 	
-	bool TerrainGenerator::GenerateTreeProbality(Biome& biome, float worldX, float worldY) {
+	bool TerrainGenerator::GenerateTreeProbality(const Biome &biome, float worldX, float worldY) const {
 		FastNoiseLite noise;
 		noise.set_noise_type(FastNoiseLite::TYPE_SIMPLEX);
-		noise.set_seed(world->config.seed);
+		noise.set_seed(world.config.seed);
 	
 		bool forest = false;
 	

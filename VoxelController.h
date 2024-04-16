@@ -18,8 +18,9 @@ private:
 	void Ready();
 	void Process();
 
-	void DestroyBlock();
-	void PlaceBlock();
-	Camera3D* GetCurrentCamera3D();
+	void DestroyBlock() const;
+	void PlaceBlock() const;
+	Camera3D *GetCurrentCamera3D() const;
+
 	bool inEditor;
 };

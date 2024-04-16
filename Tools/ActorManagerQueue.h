@@ -6,7 +6,7 @@
 namespace Voxel {
 	class ActorManagerQueue {
 	public:
-		ActorManagerQueue() {}
+		ActorManagerQueue() = default;
 	
 		void AddFunction(std::function<void()> func);
 		void Resolve();
