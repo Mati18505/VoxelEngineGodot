@@ -14,7 +14,7 @@ namespace Voxel {
 	
 		Chunk(Vector3 chunkWorldPosition, const World &worldParent, ChunkColumn &chunkColumnParent, int chunkHeightInColumn);
 		
-		void DrawChunk();
+		void SetMesh(Ref<Mesh> mesh);
 		void DeleteObject();
 
 		const Block &GetBlockAt(const Vector3 &position) const;

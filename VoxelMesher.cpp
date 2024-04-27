@@ -18,7 +18,7 @@ namespace Voxel {
 	                                            Vector3(0.5f,  0.5f, 0.5f),
 	                                            Vector3(-0.5f,  0.5f, 0.5f) };
 
-	Ref<Mesh> VoxelMesher::CreateMesh(const Array3d<Block> &voxelData, uint8_t chunkHeightInColumn, const Chunk &chunkParent) const
+	Ref<Mesh> VoxelMesher::CreateMesh(ChunkData chunkData) const
 	{
 		SM_PROFILE_ZONE;
 		std::unordered_map<std::string, MeshData> materialsMeshData;
@@ -29,11 +29,11 @@ namespace Voxel {
 			{
 				for (int x = 0; x < chunkSize; x++)
 				{
-					const Block& block = voxelData.At({ x, y, z + chunkHeightInColumn });
+					const Block &block = chunkData.voxelData.At({ x, y, z + chunkData.chunkHeightInColumn });
 					const auto& blockType = gameMode.blockTypes[block.typeID];
 					MeshData& blockMeshData = materialsMeshData[blockType.materialName];
 	
-					CreateBlock(block.typeID, Vector3(x, y, z), chunkParent, blockMeshData);
+					CreateBlock(block.typeID, Vector3(x, y, z), blockMeshData, chunkData);
 				}
 			}
 		}
@@ -95,7 +95,7 @@ namespace Voxel {
 		return mesh;
 	}
 
-	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Chunk &chunkParent, const Vector3 &posInChunk, MeshData &meshData) const {
+	void VoxelMesher::CreateBlockBlockSide(const BlockID type, BlockSide side, const Vector3 &posInChunk, MeshData &meshData) const {
 		const BlockType& myType = gameMode.blockTypes[type];
 	    // TODO: optymalizacja: vertices.reserve(x) w chunk: drawchunk
 	    switch (side)
@@ -153,37 +153,38 @@ namespace Voxel {
 	    meshData.vertexIndex += 4;
 	}
 	
-	bool VoxelMesher::HasTransparentNeighbour(BlockSide side, const Chunk &chunkParent, const Vector3 &posInChunk) const
+	bool VoxelMesher::HasTransparentNeighbour(BlockSide side, const Vector3 &posInChunk, const ChunkData &chunkData) const
 	{
 		Vector3 neighbourPosition = posInChunk + GetVectorFromBlockSide(side);
-	    const Chunk* chunk = &chunkParent;
 	
 	    if (neighbourPosition.x < 0 || neighbourPosition.x >= chunkSize ||
 	        neighbourPosition.y < 0 || neighbourPosition.y >= chunkSize ||
 	        neighbourPosition.z < 0 || neighbourPosition.z >= chunkSize)
 	    {
-	        const Chunk* neighbourChunk = chunkParent.GetNeighbour(side);
+			return true;
+	        /*const Chunk* neighbourChunk = chunkParent.GetNeighbour(side);
 	        if (neighbourChunk == nullptr)
 	            return true;
 	
 	        chunk = neighbourChunk;
-	        neighbourPosition -= chunkSize * GetVectorFromBlockSide(side);
+	        neighbourPosition -= chunkSize * GetVectorFromBlockSide(side);*/
 	    }
-	    
-	    const BlockID neighbourID = chunk->GetBlockAt(neighbourPosition).typeID;
+
+		neighbourPosition.z += chunkData.chunkHeightInColumn;
+		const BlockID neighbourID = chunkData.voxelData[neighbourPosition].typeID;
 		return gameMode.blockTypes[neighbourID].isTranslucent;
 	   // return true;  
 	}
 	
-	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, const Chunk &chunkParent, MeshData &meshData) const
+	void VoxelMesher::CreateBlock(const BlockID type, const Vector3 &posInDrawChunk, MeshData &meshData, const ChunkData &chunkData) const
 	{
 		if (gameMode.blockTypes[type].isTransparent)
 	        return;
 	
 	    for (int i = 0; i < 6; i++)
 	    {
-	        if (HasTransparentNeighbour((BlockSide)i, chunkParent, posInDrawChunk))
-	            CreateBlockBlockSide(type, (BlockSide)i, chunkParent, posInDrawChunk, meshData);
+			if (HasTransparentNeighbour((BlockSide)i, posInDrawChunk, chunkData))
+	            CreateBlockBlockSide(type, (BlockSide)i, posInDrawChunk, meshData);
 	    }
 	}
 }

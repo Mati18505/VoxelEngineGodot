@@ -39,14 +39,6 @@ namespace Voxel {
 		worldParent.terrainGenerator->GenerateStructures(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
 	
-	void ChunkColumn::DrawChunks() {
-		SM_PROFILE_ZONE;
-		for (int i = 0; i < columnHeight; i++)
-			chunks[i]->DrawChunk();
-		status = ChunkStatus::DRAWN;
-		toDraw = false;
-	}
-	
 	void ChunkColumn::AddChunksObjects() {
 		toDraw = true;
 	}
@@ -82,8 +74,10 @@ namespace Voxel {
 		{
 			if (chunk != nullptr)
 			{
-				if (chunk->chunkColumn.status == ChunkStatus::DRAWN)
-					chunk->DrawChunk(); // TODO: wielowątkowość: ustawianie flagi needDraw
+				if (chunk->chunkColumn.status == ChunkStatus::DRAWN) {
+					chunk->chunkColumn.toDraw = true;
+					chunk->chunkColumn.status = ChunkStatus::GENERATED;
+				}
 			}
 		}
 	}

@@ -6,7 +6,8 @@ Import("env_modules")
 import glob
 
 env_voxel = env_modules.Clone()
-env.Append(CPPPATH=["."])
+env_voxel.Append(CPPPATH=["."])
+env_voxel.Append(CPPDEFINES=["TRACY_ENABLE"])
 sources = [
     "*.cpp",
     "Tools/*.cpp"

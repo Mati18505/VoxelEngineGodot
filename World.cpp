@@ -8,6 +8,7 @@
 #include "Biome.h"
 #include "TerrainGenerator.h"
 #include "Tools/Profiler.h"
+#include "VoxelMesher.h"
 
 namespace Voxel {
 	World::World(GameMode &gameMode, std::vector<std::unique_ptr<const Biome>> biomes) :
@@ -21,8 +22,6 @@ namespace Voxel {
 		terrainGenerator = std::make_unique<TerrainGenerator>(*this);
 	
 		Update(playerLocation);
-		if(config.useThreading)
-			buildWorldThread = std::thread(&World::BuildWorld, this);
 	}
 	
 	void World::Update(const Vector3 &playerLocation) {
@@ -33,36 +32,48 @@ namespace Voxel {
 		{
 			lastPlayerPos = currentPlayerPos;
 			GenerateWorld();
-			if (!config.useThreading)
-				BuildWorld();
 		}
+		BuildWorld();
 	}
 	
 	void World::BuildWorld() {
 		SM_PROFILE_ZONE;
-		if (config.useThreading) {
-			SM_PROFILE_SET_THREAD_NAME("BuildWorld thread");
-			while (!isBuildWorldThreadEnd) {
-				for (auto& pair : chunks)
-				{
-					ChunkPos chunkPos = pair.first;
-					auto chunk = pair.second;
-	
-					if (chunk->GetToDraw() == true)
-						chunk->DrawChunks();
-				}
-	
-				std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			}		
-		}
-		else {
-			for (auto& pair : chunks)
+		for (auto &[chunkPos, chunkColumn] : chunks)
+		{
+			if(chunkColumn->GetToDraw() == true)
 			{
-				ChunkPos chunkPos = pair.first;
-				auto chunk = pair.second;
-	
-				if(chunk->GetToDraw() == true)
-					chunk->DrawChunks();
+				for (int i = 0; i < config.columnHeight; i++)
+				{
+					Voxel::Array3d<Block> voxelData = chunkColumn->GetBlockStorage();
+
+					chunkMeshingJobs.push_back(std::async([=, voxelData = std::move(voxelData), &voxelMesher = gameMode.voxelMesher, &config = config]() -> ChunkMeshingJobResult {
+						SM_PROFILE_ZONE_NAMED("Chunk Meshing Job");
+						ChunkMeshingJobResult result;
+
+						result.chunkPos = chunkPos;
+						result.chunkMesh = voxelMesher->CreateMesh({ std::move(voxelData), uint8_t(i * config.chunkSize) });
+						result.chunkInColumn = i;
+						return result;
+					}));
+					chunkColumn->SetToDraw(false);
+					chunkColumn->SetStatus(ChunkColumn::ChunkStatus::DRAWN);
+				}
+			}
+		}
+
+		for (auto it = chunkMeshingJobs.begin(); it < chunkMeshingJobs.end(); it++) {
+			auto &future = *it;
+			using namespace std::chrono_literals;
+
+			if (future.wait_for(0ms) == std::future_status::ready) {
+				auto result = future.get();
+
+				if (auto pair = chunks.find(result.chunkPos); pair != chunks.end()) {
+					auto &chunkColumn = pair->second;
+					auto &chunk = chunkColumn->GetChunk(result.chunkInColumn);
+					chunk.SetMesh(std::move(result.chunkMesh));
+				}
+				it = chunkMeshingJobs.erase(it);
 			}
 		}
 	}
@@ -244,15 +255,6 @@ namespace Voxel {
 			blockPosInChunk /= config.worldScale;
 			finded->second->SetBlock(blockPosInChunk, blockID);
 		}
-	}
-	
-	World::~World()
-	{
-		if (config.useThreading) {
-			isBuildWorldThreadEnd = true;
-			buildWorldThread.join();
-		}
-		print_line("World deleted\n");
 	}
 	
 	void World::UpdatePlayerPos(const Vector3 &PlayerLocation) {

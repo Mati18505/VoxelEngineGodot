@@ -23,9 +23,9 @@ namespace Voxel {
 		transform.scale(scale);
 	}
 	
-	void Chunk::DrawChunk() {
+	void Chunk::SetMesh(Ref<Mesh> mesh) {
 		SM_PROFILE_ZONE;
-		chunkMesh = world.gameMode.voxelMesher->CreateMesh(chunkColumn.GetBlockStorage(), chunkHeight, *this);
+		chunkMesh = mesh;
 		CreateActorIfEmpty();
 		UpdateMesh();
 	}

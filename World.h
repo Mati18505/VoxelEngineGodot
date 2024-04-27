@@ -3,17 +3,21 @@
 #include "GameMode.h"
 #include "vendor/nlohmann/json.hpp"
 #include "VoxelTypes.h"
+#include "TerrainGenerator.h"
 #include <unordered_map>
-#include <thread>
 #include <vector>
 #include <queue>
 #include <memory>
+#include <future>
+#include "scene/resources/mesh.h"
 
 namespace Voxel
 {
 	struct ChunkPos {
 		int x;
 		int y;
+
+		ChunkPos() = default;
 	
 		ChunkPos(int xPos, int yPos) :
 			x(xPos), y(yPos)
@@ -38,14 +42,12 @@ struct hash<Voxel::ChunkPos> {
 namespace Voxel {
 	struct BlockType;
 	class ChunkColumn;
-	class TerrainGenerator;
 	struct Biome;
 	using Json = nlohmann::json;
 	
 	class World {
 	public:
 		World(GameMode &gameMode, std::vector<std::unique_ptr<const Biome>> biomes);
-		~World();
 
 		void Start(const Vector3 &playerLocation);
 		void Update(const Vector3 &playerLocation);
@@ -82,7 +84,12 @@ namespace Voxel {
 
 		Vector2i lastPlayerPos = Vector2i(-1, 0);
 		Vector2i currentPlayerPos = Vector2i(0, 0);
-		std::thread buildWorldThread;
-		bool isBuildWorldThreadEnd = false;
+
+		struct ChunkMeshingJobResult {
+			ChunkPos chunkPos;
+			int chunkInColumn;
+			Ref<Mesh> chunkMesh;
+		};
+		std::vector<std::future<ChunkMeshingJobResult>> chunkMeshingJobs;
 	};
 }

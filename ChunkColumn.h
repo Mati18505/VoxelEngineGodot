@@ -24,8 +24,6 @@ namespace Voxel {
 
 		// Zmienia status na TO__DRAW.
 		void AddChunksObjects();
-		// Tworzy mesh i zmienia status na DRAWN.
-		void DrawChunks();
 		// Usuwa mesh i zmienia status na GENERATED.
 		void DeleteChunksObjects();
 
@@ -36,7 +34,9 @@ namespace Voxel {
 		Array3d<Block> &GetBlockStorage() { return chunkBlocks; }
 		const Array3d<Block> &GetBlockStorage() const { return chunkBlocks; }
 		ChunkStatus GetStatus() const { return status; }
+		void SetStatus(ChunkStatus newStatus) { status = newStatus; }
 		bool GetToDraw() const { return toDraw; }
+		void SetToDraw(bool v) { toDraw = v; }
 
 	private:
 		ChunkStatus status = ChunkStatus::GENERATED;
