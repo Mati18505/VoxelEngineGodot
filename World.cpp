@@ -38,15 +38,18 @@ namespace Voxel {
 	
 	void World::BuildWorld() {
 		SM_PROFILE_ZONE;
-		for (auto &[chunkPos, chunkColumn] : chunks)
+		for (auto it = chunksToDraw.begin(); it < chunksToDraw.end(); it++)
 		{
-			if(chunkColumn->GetToDraw() == true)
+			auto &chunkPos = *it;
+
+			if (auto pair = chunks.find(chunkPos); pair != chunks.end())
 			{
-				for (int i = 0; i < config.columnHeight; i++)
-				{
+				auto &chunkColumn = pair->second;
+
+				for (int i = 0; i < config.columnHeight; i++) {
 					Voxel::Array3d<Block> voxelData = chunkColumn->GetBlockStorage();
 
-					chunkMeshingJobs.push_back(std::async([=, voxelData = std::move(voxelData), &voxelMesher = gameMode.voxelMesher, &config = config]() -> ChunkMeshingJobResult {
+					chunkMeshingJobs.push_back(gameMode.threadPool.Run([=, voxelData = std::move(voxelData), &voxelMesher = gameMode.voxelMesher, &config = config]() -> ChunkMeshingJobResult {
 						SM_PROFILE_ZONE_NAMED("Chunk Meshing Job");
 						ChunkMeshingJobResult result;
 
@@ -55,10 +58,10 @@ namespace Voxel {
 						result.chunkInColumn = i;
 						return result;
 					}));
-					chunkColumn->SetToDraw(false);
 					chunkColumn->SetStatus(ChunkColumn::ChunkStatus::DRAWN);
 				}
 			}
+			it = chunksToDraw.erase(it);
 		}
 
 		for (auto it = chunkMeshingJobs.begin(); it < chunkMeshingJobs.end(); it++) {
@@ -149,8 +152,8 @@ namespace Voxel {
 					if (!(finded == chunks.end())) {
 						chunksInRenderDistance.push_back(chunkID);
 
-						if (finded->second->GetStatus() == ChunkColumn::ChunkStatus::GENERATED && finded->second->GetToDraw() == false) {
-							finded->second->AddChunksObjects();
+						if (finded->second->GetStatus() == ChunkColumn::ChunkStatus::GENERATED && !IsChunkToDraw(finded->first)) {
+							chunksToDraw.push_back(finded->first);
 							chunksToDrawCount++;
 						}
 					}
@@ -165,10 +168,12 @@ namespace Voxel {
 				ChunkPos chunkPos = pair.first;
 				auto& chunk = pair.second;
 
-				if (chunk->GetStatus() == ChunkColumn::ChunkStatus::DRAWN || chunk->GetToDraw() == true) {
+				if (chunk->GetStatus() == ChunkColumn::ChunkStatus::DRAWN || IsChunkToDraw(chunkPos)) {
 					auto finded = std::find(chunksInRenderDistance.begin(), chunksInRenderDistance.end(), chunkPos);
 					if (finded == chunksInRenderDistance.end()) {
 						chunk->DeleteChunksObjects();
+						if (IsChunkToDraw(chunkPos))
+							chunksToDraw.erase(std::find(chunksToDraw.begin(), chunksToDraw.end(), chunkPos));
 						chunksToDelete++;
 					}
 				}
@@ -249,11 +254,13 @@ namespace Voxel {
 	void World::SetBlock(const Vector3 &blockPositionInWorld, BlockID blockID) {
 		SM_PROFILE_ZONE;
 		Vector3 chunkPos = GetChunkColumnPosByBlockWorldPosition(blockPositionInWorld);
-		auto finded = chunks.find(GenerateChunkColumnID(chunkPos)); // Szukanie chunka w map chunks.
+		auto finded = chunks.find(GenerateChunkColumnID(chunkPos));
+
 		if (!(finded == chunks.end())) {
 			Vector3i blockPosInChunk = Vector3i(blockPositionInWorld - chunkPos);
 			blockPosInChunk /= config.worldScale;
 			finded->second->SetBlock(blockPosInChunk, blockID);
+			RedrawChunks(blockPositionInWorld);
 		}
 	}
 	
@@ -268,6 +275,32 @@ namespace Voxel {
 			return blockType->isSolid;
 
 		return false;
+	}
+
+	bool World::IsChunkToDraw(const ChunkPos &chunkPos) const {
+		return std::find(chunksToDraw.begin(), chunksToDraw.end(), chunkPos) != chunksToDraw.end();
+	}
+
+	void World::RedrawChunks(const Vector3 &blockPositionInWorld) {
+		SM_PROFILE_ZONE;
+		Vector3 central = GetChunkColumnPosByBlockWorldPosition(blockPositionInWorld);
+		std::vector<ChunkPos> chunksToRedraw;
+
+		chunksToRedraw.push_back(GenerateChunkColumnID(central));
+
+		if (blockPositionInWorld.x == 0)
+			chunksToRedraw.push_back(GenerateChunkColumnID(central + Vector3(-16, 0, 0)));
+		if (blockPositionInWorld.x >= config.chunkSize - 1)
+			chunksToRedraw.push_back(GenerateChunkColumnID(central + Vector3(16, 0, 0)));
+		if (blockPositionInWorld.y == 0)
+			chunksToRedraw.push_back(GenerateChunkColumnID(central + Vector3(0, -16, 0)));
+		if (blockPositionInWorld.y >= config.chunkSize - 1)
+			chunksToRedraw.push_back(GenerateChunkColumnID(central + Vector3(0, 16, 0)));
+
+		for (auto &chunkPos : chunksToRedraw) {
+			chunksToDraw.push_back(chunkPos);
+			chunks.at(chunkPos)->SetStatus(ChunkColumn::ChunkStatus::GENERATED);
+		}
 	}
 
 }

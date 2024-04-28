@@ -5,6 +5,7 @@
 #include "BlockTypeStorage.h"
 #include "Tools/ActorManagerQueue.h"
 #include "vendor/nlohmann/json.hpp"
+#include "Tools/ThreadPool/ThreadPool.h"
 
 class VoxelNode;
 namespace Voxel {
@@ -36,6 +37,7 @@ namespace Voxel {
 		const TextureDictionary textureDictionary;
 		const MaterialDictionary materialDictionary;
 		const BlockTypeStorage blockTypes;
+		tk::ThreadPool threadPool{ 12 };
 
 	private:
 		const VoxelNode &voxelNode;

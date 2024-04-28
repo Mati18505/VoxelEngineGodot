@@ -24,7 +24,6 @@ namespace Voxel {
 	}
 	
 	void Chunk::SetMesh(Ref<Mesh> mesh) {
-		SM_PROFILE_ZONE;
 		chunkMesh = mesh;
 		CreateActorIfEmpty();
 		UpdateMesh();
@@ -67,7 +66,6 @@ namespace Voxel {
 	}
 
 	void Chunk::CreateActorIfEmpty() {
-		SM_PROFILE_ZONE;
 		if (chunkActor.is_null())
 		{
 			world.gameMode.actorManagerQueue.AddFunction([=]() {
@@ -77,7 +75,6 @@ namespace Voxel {
 	}
 
 	void Chunk::UpdateMesh() {
-		SM_PROFILE_ZONE;
 		world.gameMode.actorManagerQueue.AddFunction([=]() {
 			ActorManager::Get().UpdateMesh(chunkActor, chunkMesh);
 		});
@@ -85,7 +82,6 @@ namespace Voxel {
 
 	void Chunk::DeleteObject()
 	{
-		SM_PROFILE_ZONE;
 		world.gameMode.actorManagerQueue.AddFunction([chunkActor = chunkActor]() {
 			ActorManager::Get().DestroyActor(chunkActor);
 		});

@@ -22,8 +22,6 @@ namespace Voxel {
 		void AddBlockModification(VoxelMod mod);
 		void ApplyModifications();
 
-		// Zmienia status na TO__DRAW.
-		void AddChunksObjects();
 		// Usuwa mesh i zmienia status na GENERATED.
 		void DeleteChunksObjects();
 
@@ -35,15 +33,12 @@ namespace Voxel {
 		const Array3d<Block> &GetBlockStorage() const { return chunkBlocks; }
 		ChunkStatus GetStatus() const { return status; }
 		void SetStatus(ChunkStatus newStatus) { status = newStatus; }
-		bool GetToDraw() const { return toDraw; }
-		void SetToDraw(bool v) { toDraw = v; }
 
 	private:
 		ChunkStatus status = ChunkStatus::GENERATED;
 		std::vector<std::unique_ptr<Chunk>> chunks;
 		std::queue<VoxelMod> blocksModifications;
 		Array3d<Block> chunkBlocks;
-		bool toDraw = false;
 
 		mutable std::weak_ptr<ChunkColumn> neighbours[4]{};
 		const World &worldParent;

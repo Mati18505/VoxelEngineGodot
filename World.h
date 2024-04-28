@@ -81,6 +81,7 @@ namespace Voxel {
 
 		void UpdatePlayerPos(const Vector3 &PlayerLocation);
 		bool IsBlockSolid(const Vector3 &pos) const;
+		bool IsChunkToDraw(const ChunkPos &chunkPos) const;
 
 		Vector2i lastPlayerPos = Vector2i(-1, 0);
 		Vector2i currentPlayerPos = Vector2i(0, 0);
@@ -91,5 +92,7 @@ namespace Voxel {
 			Ref<Mesh> chunkMesh;
 		};
 		std::vector<std::future<ChunkMeshingJobResult>> chunkMeshingJobs;
+		std::vector<ChunkPos> chunksToDraw;
+		void RedrawChunks(const Vector3 &blockPositionInWorld);
 	};
-}
+	}

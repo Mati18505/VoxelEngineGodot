@@ -39,47 +39,9 @@ namespace Voxel {
 		worldParent.terrainGenerator->GenerateStructures(chunkBlocks, { (int)columnPosInWorld.x / worldScale, (int)columnPosInWorld.y / worldScale });
 	}
 	
-	void ChunkColumn::AddChunksObjects() {
-		toDraw = true;
-	}
-	
 	void ChunkColumn::SetBlock(const Vector3i &position, BlockID blockID) {
 		SM_PROFILE_ZONE;
-		int chunkHeight = floor(position.z / chunkSize);
-	
 		chunkBlocks.At({ position.x, position.y, position.z }) = Block(blockID);
-	
-		int posZInChunk = position.z % chunkSize;
-	
-		Chunk* currentChunk = chunks[chunkHeight].get();
-		
-		std::vector<Chunk*> chunksToRedraw;
-		
-		chunksToRedraw.push_back(currentChunk);
-		
-		if (position.x == 0)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(LEFT));
-		if (position.x >= chunkSize-1)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(RIGHT));
-		if (position.y == 0)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(BACK));
-		if (position.y >= chunkSize-1)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(FRONT));
-		if (posZInChunk == 0)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(BOTTOM));
-		if (posZInChunk >= chunkSize-1)
-			chunksToRedraw.push_back(currentChunk->GetNeighbour(TOP));
-	
-		for (Chunk* chunk : chunksToRedraw)
-		{
-			if (chunk != nullptr)
-			{
-				if (chunk->chunkColumn.status == ChunkStatus::DRAWN) {
-					chunk->chunkColumn.toDraw = true;
-					chunk->chunkColumn.status = ChunkStatus::GENERATED;
-				}
-			}
-		}
 	}
 	
 	void ChunkColumn::ApplyModifications()
@@ -102,7 +64,6 @@ namespace Voxel {
 
 	void ChunkColumn::DeleteChunksObjects() {
 		SM_PROFILE_ZONE;
-		toDraw = false;
 		for (int i = 0; i < columnHeight; i++)
 			chunks[i]->DeleteObject();
 		status = ChunkStatus::GENERATED;
