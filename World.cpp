@@ -38,10 +38,8 @@ namespace Voxel {
 	
 	void World::BuildWorld() {
 		SM_PROFILE_ZONE;
-		for (auto it = chunksToDraw.begin(); it < chunksToDraw.end(); it++)
+		for (auto &chunkPos : chunksToDraw)
 		{
-			auto &chunkPos = *it;
-
 			if (auto pair = chunks.find(chunkPos); pair != chunks.end())
 			{
 				auto &chunkColumn = pair->second;
@@ -61,8 +59,8 @@ namespace Voxel {
 					chunkColumn->SetStatus(ChunkColumn::ChunkStatus::DRAWN);
 				}
 			}
-			it = chunksToDraw.erase(it);
 		}
+		chunksToDraw.clear();
 
 		for (auto it = chunkMeshingJobs.begin(); it < chunkMeshingJobs.end(); it++) {
 			auto &future = *it;
@@ -74,7 +72,10 @@ namespace Voxel {
 				if (auto pair = chunks.find(result.chunkPos); pair != chunks.end()) {
 					auto &chunkColumn = pair->second;
 					auto &chunk = chunkColumn->GetChunk(result.chunkInColumn);
-					chunk.SetMesh(std::move(result.chunkMesh));
+
+					// If chunk was deleted while creating mesh do not draw it.
+					if (chunkColumn->GetStatus() == ChunkColumn::ChunkStatus::DRAWN)
+						chunk.SetMesh(std::move(result.chunkMesh));
 				}
 				it = chunkMeshingJobs.erase(it);
 			}
